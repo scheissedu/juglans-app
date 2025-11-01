@@ -1,0 +1,43 @@
+/* /klinecharts-workspace/packages/preview/src/SuggestionList.css */
+
+.suggestion-list {
+  background-color: var(--chat-popover-background);
+  border: 1px solid var(--chat-border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  padding: 8px;
+  overflow: hidden;
+  color: var(--chat-text-color);
+}
+
+.suggestion-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: inherit;
+}
+
+.suggestion-item.is-selected,
+.suggestion-item:hover {
+  background-color: var(--chat-primary-color);
+  color: #fff;
+}
+
+.suggestion-item .item-label {
+  font-weight: 600;
+}
+
+.suggestion-item .item-description {
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.suggestion-item.is-selected .item-description,
+.suggestion-item:hover .item-description {
+  opacity: 0.9;
+}

@@ -1,0 +1,92 @@
+{
+  "name": "@klinecharts/core",
+  "version": "9.8.10",
+  "description": "Lightweight k-line chart built with html5 canvas",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.esm.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./src/index.ts"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "unpkg": "./dist/umd/klinecharts.min.js",
+  "type": "module",
+  "files": [
+    "LICENSE",
+    "README.md",
+    "dist/",
+    "src/",
+    "licenses/",
+    "NOTICE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/klinecharts/KLineChart"
+  },
+  "bugs": {
+    "url": "https://github.com/klinecharts/KLineChart/issues"
+  },
+  "homepage": "https://klinecharts.com/",
+  "keywords": [
+    "k-line",
+    "time-line",
+    "candlestick",
+    "indicator",
+    "finance",
+    "klinechart",
+    "stockchart",
+    "stock",
+    "chart",
+    "canvas"
+  ],
+  "author": "liihuu",
+  "license": "Apache-2.0",
+  "private": false,
+  "scripts": {
+    "lint": "eslint src/**/*.ts",
+    "clean": "node scripts/clean.js",
+    "build-esm": "node scripts/build-esm.js",
+    "build-cjs": "cross-env NODE_ENV=production node scripts/build-cjs.js",
+    "build-umd:dev": "cross-env NODE_ENV=development node scripts/build-umd.js",
+    "build-umd:prod": "cross-env NODE_ENV=production node scripts/build-umd.js",
+    "build-umd": "pnpm build-umd:dev && pnpm build-umd:prod",
+    "build-core": "pnpm build-esm && pnpm build-cjs && pnpm build-umd",
+    "build-dts": "dts-bundle-generator --no-banner true --fail-on-class true --umd-module-name klinecharts -o dist/index.d.ts src/index.ts",
+    "build": "pnpm clean && pnpm build-core && pnpm build-dts",
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview",
+    "docs:deploy": "pnpm docs:build && gh-pages -d website"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "devDependencies": {
+    "@babel/standalone": "^7.24.4",
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-eslint": "^9.0.5",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "@rollup/plugin-replace": "^5.0.5",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^11.1.6",
+    "@shikijs/vitepress-twoslash": "^1.4.0",
+    "@stackblitz/sdk": "^1.9.0",
+    "@types/node": "^20.12.7",
+    "chalk": "^5.3.0",
+    "codesandbox": "^2.2.3",
+    "eslint-config-love": "^47.0.0",
+    "fs-extra": "^11.2.0",
+    "resize-observer-polyfill": "^1.5.1",
+    "rollup-plugin-filesize": "^10.0.0",
+    "rollup-plugin-progress": "^1.1.2",
+    "tslib": "^2.6.2"
+  }
+}

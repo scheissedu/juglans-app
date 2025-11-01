@@ -1,0 +1,17 @@
+// klinecharts-workspace/tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@klinecharts/core": ["packages/core/src"],
+      "@klinecharts/core/*": ["packages/core/src/*"]
+    }
+  }
+}
