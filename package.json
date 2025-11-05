@@ -4,8 +4,7 @@
   "version": "1.0.0",
   "description": "Monorepo for KLineChart",
   "workspaces": [
-    "packages/*",
-    "ai-service"
+    "packages/*"
   ],
   "scripts": {
     "build": "pnpm --filter \"@klinecharts/*\" build",

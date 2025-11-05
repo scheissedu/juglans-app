@@ -205,8 +205,10 @@ export const ChatArea: Component = () => {
         delete context.klineData;
         delete context.marketContext;
       }
+      
 
-      const response = await fetch('/api/chat', {
+      const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/api/chat`;
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ history: historyForAPI, context: context, model: selectedModelId() }),
