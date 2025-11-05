@@ -9,7 +9,7 @@ import tippy, { type Instance as TippyInstance } from 'tippy.js';
 
 import { QuickSuggestion, useAppContext } from '../../context/AppContext';
 import EditorContext, { useEditor, type EditorContextState } from '../../context/EditorContext';
-import { useBrokerState } from '@klinecharts/pro/src/api/BrokerStateContext';
+import { useBrokerState } from '@klinecharts/pro';
 
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';

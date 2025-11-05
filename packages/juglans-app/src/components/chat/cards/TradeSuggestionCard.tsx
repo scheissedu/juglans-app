@@ -12,7 +12,7 @@ import {
   Switch
 } from '@klinecharts/pro';
 import { useAppContext } from '../../../context/AppContext';
-import { useBrokerState } from '@klinecharts/pro/src/api/BrokerStateContext';
+import { useBrokerState } from '@klinecharts/pro';
 import './TradeSuggestionCard.css';
 
 type SizeUnit = 'BASE' | 'QUOTE';

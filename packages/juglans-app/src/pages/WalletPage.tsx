@@ -1,6 +1,6 @@
 import { Component, onMount, onCleanup, createMemo, createSignal, Show } from 'solid-js';
 import { useAppContext, ChatExtension } from '../context/AppContext';
-import { useBrokerState } from '@klinecharts/pro/src/api/BrokerStateContext';
+import { useBrokerState } from '@klinecharts/pro';
 import { SuggestionItem } from '../components/chat/SuggestionList';
 import type { Position } from '@klinecharts/pro';
 

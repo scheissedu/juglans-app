@@ -4,7 +4,7 @@ import { produce } from 'solid-js/store';
 
 import { KLineChartPro } from '@klinecharts/pro';
 import { useAppContext } from './context/AppContext';
-import { useBrokerState } from '@klinecharts/pro/src/api/BrokerStateContext';
+import { useBrokerState } from '@klinecharts/pro';
 import Navbar from './components/Navbar/Navbar';
 import { ChatArea } from './components/chat/ChatArea';
 import ModeSelectorModal from './components/modals/ModeSelectorModal';

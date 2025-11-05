@@ -1,15 +1,15 @@
+// packages/juglans-app/src/main.tsx (修正后)
 import { render } from 'solid-js/web';
 import { Router, Route } from '@solidjs/router';
 import { AppContextProvider } from './context/AppContext';
-import { BrokerStateProvider } from '@klinecharts/pro/src/api/BrokerStateContext';
+// --- 核心修正：从主入口导入 ---
+import { BrokerStateProvider } from '@klinecharts/pro';
 import { ChatAreaProvider } from './components/chat/ChatArea';
 
 import App from './App';
-import { lazy } from 'solid-js';
-
-const ChartPage = lazy(() => import('./pages/ChartPage'));
-const WalletPage = lazy(() => import('./pages/WalletPage'));
-const MarketPage = lazy(() => import('./pages/MarketPage'));
+import ChartPage from './pages/ChartPage';
+import WalletPage from './pages/WalletPage';
+import MarketPage from './pages/MarketPage';
 
 import './index.css';
 
