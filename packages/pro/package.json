@@ -10,7 +10,7 @@
     ".": {
       "import": {
         "types": "./dist/index.d.ts",
-        "default": "./src/index.ts"
+        "default": "./dist/klinecharts-pro.js"
       },
       "require": {
         "types": "./dist/index.d.ts",
@@ -25,6 +25,10 @@
     "dist/",
     "src/"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/klinecharts/pro"
+  },
   "keywords": [
     "klinecharts",
     "pro",
@@ -34,6 +38,9 @@
     "chart",
     "canvas"
   ],
+  "author": "liihuu",
+  "license": "Apache-2.0",
+  "private": false,
   "scripts": {
     "build": "vite build",
     "docs:dev": "vitepress dev docs",

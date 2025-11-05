@@ -8,6 +8,13 @@
     "build": "vite build",
     "preview": "vite preview"
   },
+  "pnpm": {
+    "buildConfig": {
+      "dependsOn": [
+        "build"
+      ]
+    }
+  },
   "dependencies": {
     "@klinecharts/core": "workspace:*",
     "@klinecharts/light": "workspace:*",
