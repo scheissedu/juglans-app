@@ -1,0 +1,53 @@
+// /klinecharts-workspace/packages/pro/src/component/table/index.less
+
+@import (reference) '../../base.less';
+
+.@{prefix-cls}-table {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-size: 14px;
+  color: var(--klinecharts-pro-text-color);
+
+  .table-header {
+    display: flex;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--klinecharts-pro-border-color);
+    padding: 0 16px;
+
+    .th {
+      flex: 1;
+      padding: 8px 4px;
+      color: var(--klinecharts-pro-text-second-color);
+      font-weight: 600;
+    }
+  }
+
+  .table-body {
+    flex: 1;
+    position: relative; // For Loading/Empty states
+    min-height: 0; // For flexbox overflow
+
+    .@{prefix-cls}-list {
+      min-height: 100px;
+      height: 100%;
+    }
+
+    .tr {
+      display: flex;
+      border-bottom: 1px solid var(--klinecharts-pro-border-color);
+      padding: 0 16px;
+      &:hover {
+        background-color: var(--klinecharts-pro-hover-background-color);
+      }
+    }
+
+    .td {
+      flex: 1;
+      padding: 10px 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "name": "@klinecharts/pro",
+  "version": "0.1.1",
+  "description": "Financial chart built out of the box based on KLineChart.",
+  "type": "module",
+  "main": "./dist/klinecharts-pro.umd.js",
+  "module": "./dist/klinecharts-pro.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./src/index.ts"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/klinecharts-pro.umd.js"
+      }
+    },
+    "./src/*": "./src/*"
+  },
+  "files": [
+    "LICENSE",
+    "README.md",
+    "dist/",
+    "src/"
+  ],
+  "keywords": [
+    "klinecharts",
+    "pro",
+    "candlestick",
+    "finance",
+    "stock",
+    "chart",
+    "canvas"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs",
+    "docs:deploy": "pnpm docs:build && gh-pages -d website"
+  },
+  "devDependencies": {
+    "@solidjs/testing-library": "^0.6.0",
+    "@testing-library/jest-dom": "^5.16.5",
+    "@types/lodash": "^4.14.191",
+    "@types/testing-library__jest-dom": "^5.14.5",
+    "@typescript-eslint/eslint-plugin": "^5.54.0",
+    "babel-preset-solid": "^1.6.10",
+    "eslint-plugin-import": "^2.27.5",
+    "eslint-plugin-n": "^15.6.1",
+    "eslint-plugin-promise": "^6.1.1",
+    "less-loader": "^11.1.0",
+    "vite-plugin-dts": "^3.9.1",
+    "vite-plugin-solid": "^2.6.1",
+    "vitest": "^0.28.4"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21"
+  },
+  "peerDependencies": {
+    "@klinecharts/core": "workspace:*",
+    "solid-js": "^1.6.11"
+  }
+}

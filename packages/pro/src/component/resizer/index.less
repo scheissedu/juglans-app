@@ -1,0 +1,29 @@
+// /klinecharts-workspace/packages/pro/src/component/resizer/index.less
+@import (reference) '../../base.less';
+
+.@{prefix-cls}-resizer {
+  flex-shrink: 0;
+  background-color: transparent;
+  transition: background-color 0.2s;
+  z-index: 10; // Ensure it's above adjacent elements
+
+  &.horizontal {
+    height: 5px;
+    width: 100%;
+    cursor: ns-resize;
+    margin-top: -2.5px;
+    margin-bottom: -2.5px;
+  }
+
+  &.vertical {
+    width: 5px;
+    height: 100%;
+    cursor: ew-resize;
+    margin-left: -2.5px;
+    margin-right: -2.5px;
+  }
+
+  &:hover {
+    background-color: var(--klinecharts-pro-primary-color);
+  }
+}

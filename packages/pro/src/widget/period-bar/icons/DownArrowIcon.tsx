@@ -1,0 +1,1 @@
+export default () => ( <svg width="8" height="6" viewBox="0 0 8 6" fill="none"><path d="M1 1L4 4L7 1" stroke="currentColor" stroke-width="1.5"/></svg> );

@@ -1,0 +1,125 @@
+// /klinecharts-workspace/packages/pro/src/widget/trade-panel/index.less
+
+@import (reference) '../../base.less';
+
+.@{prefix-cls}-trade-panel {
+  width: 300px;
+  flex-shrink: 0;
+  background-color: var(--klinecharts-pro-background-color);
+  border-left: 1px solid var(--klinecharts-pro-border-color);
+  color: var(--klinecharts-pro-text-color);
+  padding: 16px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  gap: 16px;
+
+  &-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+  }
+
+  &-side-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    .side-btn {
+      padding: 10px;
+      border: 2px solid transparent;
+      border-radius: 4px;
+      background-color: var(--klinecharts-pro-popover-background-color);
+      color: var(--klinecharts-pro-text-color);
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      text-align: left;
+      transition: all 0.2s;
+      
+      .price {
+        font-size: 18px;
+      }
+
+      &.sell {
+        &:hover { border-color: #F92855; }
+        &.active {
+          background-color: #F92855;
+          color: #fff;
+        }
+      }
+      &.buy {
+        &:hover { border-color: #2DC08E; }
+        &.active {
+          background-color: #2DC08E;
+          color: #fff;
+        }
+      }
+    }
+  }
+
+  &-order-type-tabs {
+    display: flex;
+    background-color: var(--klinecharts-pro-popover-background-color);
+    border-radius: 4px;
+    padding: 4px;
+    .type-btn {
+      flex: 1;
+      padding: 6px 0;
+      text-align: center;
+      background: transparent;
+      border: none;
+      color: var(--klinecharts-pro-text-second-color);
+      cursor: pointer;
+      border-radius: 4px;
+      font-weight: 600;
+      &.active {
+        background-color: var(--klinecharts-pro-background-color);
+        color: var(--klinecharts-pro-text-color);
+      }
+    }
+  }
+
+  &-form-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    label {
+      font-size: 14px;
+      color: var(--klinecharts-pro-text-second-color);
+    }
+    
+    .klinecharts-pro-input {
+      background-color: var(--klinecharts-pro-popover-background-color);
+      border-color: var(--klinecharts-pro-popover-background-color);
+      height: 40px;
+      &:hover {
+        border-color: var(--klinecharts-pro-primary-color);
+      }
+    }
+
+    .exit-item {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+  }
+  
+  .action-button-container {
+    margin-top: auto; // Pushes button to the bottom
+    .klinecharts-pro-button {
+      width: 100%;
+      height: 44px;
+      font-size: 16px;
+      font-weight: 600;
+      border: none;
+      &.sell { background-color: #F92855; color: #fff; }
+      &.buy { background-color: #2DC08E; color: #fff; }
+    }
+  }
+}
