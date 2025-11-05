@@ -1,3 +1,5 @@
+// packages/juglans-app/src/components/chat/extensions/chart.ts
+
 import { KLineChartPro } from '@klinecharts/pro';
 import { AppContextValue, ChatExtension, QuickSuggestion } from '../../../context/AppContext';
 import { SuggestionItem } from '../SuggestionList';
@@ -90,8 +92,18 @@ export function createChartChatExtension(
             const startIndex = Math.min(points[0].dataIndex, points[1].dataIndex);
             const endIndex = Math.max(points[0].dataIndex, points[1].dataIndex);
             const selectedData = chart.getDataList().slice(startIndex, endIndex + 1);
-            const customEvent = new CustomEvent('robotSelectionEnd', { detail: { selectedData, symbol: state.symbol, period: state.period } });
+            
+            // --- 核心修正：直接派发 add-chat-attachment 事件 ---
+            const newAttachment = {
+              type: 'kline',
+              id: `kline_${Date.now()}`,
+              symbol: state.symbol.shortName || state.symbol.ticker,
+              period: state.period.text,
+              data: JSON.stringify(selectedData)
+            };
+            const customEvent = new CustomEvent('add-chat-attachment', { detail: newAttachment });
             document.body.dispatchEvent(customEvent);
+            // --- 修正结束 ---
           }
           chart.removeOverlay(overlay.id);
         }
@@ -99,8 +111,17 @@ export function createChartChatExtension(
     } else {
       const range = chart.getVisibleRange();
       const data = chart.getDataList().slice(range.from, range.to);
-      const customEvent = new CustomEvent('robotSelectionEnd', { detail: { selectedData: data, symbol: state.symbol, period: state.period } });
+      // --- 核心修正：直接派发 add-chat-attachment 事件 ---
+       const newAttachment = {
+          type: 'kline',
+          id: `kline_${Date.now()}`,
+          symbol: state.symbol.shortName || state.symbol.ticker,
+          period: state.period.text,
+          data: JSON.stringify(data)
+       };
+      const customEvent = new CustomEvent('add-chat-attachment', { detail: newAttachment });
       document.body.dispatchEvent(customEvent);
+      // --- 修正结束 ---
       alert(`Attached ${data.length} visible bars from the Light chart.`);
     }
   };

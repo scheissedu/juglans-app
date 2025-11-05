@@ -430,6 +430,22 @@ export const ChatArea: Component = () => {
         
         <div class="input-area">
           <div class="top-row"><RichInput /></div>
+          
+          <Show when={attachments.length > 0}>
+            <div class="attachment-preview-container">
+              <For each={attachments}>
+                {(att) => (
+                  <div class="attachment-preview">
+                    <Show when={att.type === 'image'}><img src={(att as ImageAttachment).url} alt="preview"/></Show>
+                    <Show when={att.type === 'kline'}><KLineDataCard node={{ attrs: att as any }} deleteNode={() => removeAttachment(att.id)} /></Show>
+                    <Show when={att.type === 'position'}><PositionCard node={{ attrs: att as any }} deleteNode={() => removeAttachment(att.id)} /></Show>
+                    {/* --- 核心修正：下面的按钮已被删除 --- */}
+                  </div>
+                )}
+              </For>
+            </div>
+          </Show>
+          
           <div class="bottom-row">
             <div class="actions-left">
               <div class="attachment-menu-container">
@@ -474,18 +490,7 @@ export const ChatArea: Component = () => {
               />
               
               <input ref={fileInputRef} type="file" style={{ display: 'none' }} accept="image/*" onChange={(e) => { const files = e.currentTarget.files; if (files && files.length > 0) { handleFile(files[0]); e.currentTarget.value = ''; } }} />
-              <div class="attachment-preview-container">
-                <For each={attachments}>
-                  {(att) => (
-                    <div class="attachment-preview">
-                      <Show when={att.type === 'image'}><img src={(att as ImageAttachment).url} alt="preview"/></Show>
-                      <Show when={att.type === 'kline'}><KLineDataCard node={{ attrs: att as any }} deleteNode={() => removeAttachment(att.id)} /></Show>
-                      <Show when={att.type === 'position'}><PositionCard node={{ attrs: att as any }} deleteNode={() => removeAttachment(att.id)} /></Show>
-                      <button class="remove-attachment-btn" onClick={() => removeAttachment(att.id)}>×</button>
-                    </div>
-                  )}
-                </For>
-              </div>
+              
             </div>
             <div class="actions-right">
               <button class="send-btn" onClick={() => handleSend()} disabled={isInputEmpty() && attachments.length === 0}>

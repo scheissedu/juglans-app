@@ -1,3 +1,5 @@
+// packages/juglans-app/src/pages/ChartPage.tsx
+
 import { Component, createEffect, on, onMount, onCleanup } from 'solid-js';
 import { useParams } from '@solidjs/router';
 import { useAppContext } from '../context/AppContext';
@@ -12,20 +14,11 @@ const ChartPage: Component = () => {
   const { editor } = useEditor();
   const params = useParams();
 
-  const handleRobotSelection = (event: Event) => {
-    console.log('[ChartPage.tsx] Handling robotSelectionEnd event.');
-    const detail = (event as CustomEvent).detail;
-    const { selectedData, symbol, period } = detail;
-    const newAttachment = { type: 'kline', id: `kline_${Date.now()}`, symbol: symbol.shortName || symbol.ticker, period: period.text, data: JSON.stringify(selectedData) };
-    const addAttachmentEvent = new CustomEvent('add-chat-attachment', { detail: newAttachment });
-    document.body.dispatchEvent(addAttachmentEvent);
-  };
-  
+  // --- 核心修正：移除 handleRobotSelection 函数和相关的事件监听 ---
   onMount(() => {
     console.log('[ChartPage.tsx] onMount: Registering chart chat extension.');
     const extension = createChartChatExtension([state, actions], editor);
     actions.setChatExtension(extension);
-    document.body.addEventListener('robotSelectionEnd', handleRobotSelection);
   });
   
   onCleanup(() => {
@@ -33,8 +26,8 @@ const ChartPage: Component = () => {
     if (state.chatExtension && state.chatExtension.getCommands().some(c => c.key === 'add_klines')) {
         actions.setChatExtension(null);
     }
-    document.body.removeEventListener('robotSelectionEnd', handleRobotSelection);
   });
+  // --- 修正结束 ---
 
   createEffect(on(() => params.symbol, (ticker) => {
     if (ticker && ticker !== state.symbol.ticker) {

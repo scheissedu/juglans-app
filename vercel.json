@@ -9,14 +9,14 @@
       }
     },
     {
-      "src": "api/server.js",
+      "src": "ai-service/server.js",
       "use": "@vercel/node"
     }
   ],
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/server"
+      "destination": "/ai-service/server.js"
     },
     {
       "source": "/((?!api/|assets/).*)",
