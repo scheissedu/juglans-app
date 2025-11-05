@@ -11,6 +11,8 @@ import ChartPage from './pages/ChartPage';
 import WalletPage from './pages/WalletPage';
 import MarketPage from './pages/MarketPage';
 
+import '@klinecharts/pro/index.less';
+
 import './index.css';
 
 render(() => (

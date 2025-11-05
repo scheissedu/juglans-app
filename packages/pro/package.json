@@ -17,6 +17,8 @@
         "default": "./dist/klinecharts-pro.umd.js"
       }
     },
+    "./dist/klinecharts-pro.css": "./dist/klinecharts-pro.css",
+    "./index.less": "./src/index.less",
     "./src/*": "./src/*"
   },
   "files": [
