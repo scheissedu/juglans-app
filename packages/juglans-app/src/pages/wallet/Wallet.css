@@ -1,0 +1,195 @@
+/* --- Wallet Summary Card --- */
+.wallet-summary-card {
+  background-color: var(--card-bg);
+  padding: 24px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  text-align: center;
+  margin: 24px;
+}
+.wallet-summary-label {
+  font-size: 14px;
+  color: var(--light-gray);
+  margin-bottom: 8px;
+}
+.wallet-summary-balance {
+  font-size: 32px;
+  font-weight: 600;
+  color: #fff;
+}
+.wallet-summary-change {
+  font-size: 16px;
+  margin-top: 8px;
+}
+.wallet-summary-change.up { color: #2DC08E; }
+.wallet-summary-change.down { color: #F92855; }
+
+/* --- Wallet Actions --- */
+.wallet-actions-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 0 24px;
+}
+.wallet-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 48px;
+  border-radius: 8px;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.wallet-action-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor; /*让SVG图标继承按钮的颜色*/
+}
+.wallet-action-btn.send {
+  background-color: rgba(249, 40, 85, 0.15);
+  color: #F92855;
+}
+.wallet-action-btn.send:hover { background-color: rgba(249, 40, 85, 0.25); }
+.wallet-action-btn.receive {
+  background-color: rgba(45, 192, 142, 0.15);
+  color: #2DC08E;
+}
+.wallet-action-btn.receive:hover { background-color: rgba(45, 192, 142, 0.25); }
+
+/* --- Wallet Asset List --- */
+.wallet-asset-list-container {
+  padding: 24px;
+}
+.wallet-asset-list-header {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+.wallet-asset-list-items {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Wallet Asset List Item */
+.wallet-asset-item {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+}
+.wallet-asset-item:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+  margin: 0 -12px;
+  padding: 16px 12px;
+  border-radius: 8px;
+}
+
+.wallet-asset-item .asset-balance {
+  text-align: right;
+}
+.wallet-asset-item .asset-usd-value {
+  font-size: 16px;
+  font-weight: 600;
+}
+.wallet-asset-item .asset-amount {
+  font-size: 12px;
+  color: var(--light-gray);
+  margin-top: 4px;
+}
+
+/* --- Receive Modal Styles --- */
+.receive-modal-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.qr-code-wrapper {
+  background-color: white;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.receive-instructions {
+  font-size: 14px;
+  color: var(--light-gray);
+  text-align: center;
+  max-width: 300px;
+  margin: 0;
+}
+
+.address-display {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background-color: var(--dark-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: monospace;
+  font-size: 14px;
+}
+.address-display span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.address-display button {
+  margin-left: 12px;
+  background-color: var(--primary-highlight);
+  color: #000;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* --- Send Modal Styles --- */
+.send-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.form-group label {
+  font-size: 14px;
+  color: var(--light-gray);
+  font-weight: 500;
+}
+.wallet-input {
+  background-color: var(--dark-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  height: 44px;
+  padding: 0 16px;
+  color: #fff;
+  font-size: 16px;
+}
+.wallet-input:focus {
+  outline: none;
+  border-color: var(--primary-highlight);
+}
+.wallet-submit-btn {
+  height: 48px;
+  border-radius: 8px;
+  background-color: var(--primary-highlight);
+  color: #000;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}

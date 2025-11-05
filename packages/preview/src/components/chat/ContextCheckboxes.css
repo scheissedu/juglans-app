@@ -1,0 +1,19 @@
+/* /klinecharts-workspace/packages/preview/src/ContextCheckboxes.css */
+.context-checkboxes {
+  display: flex;
+  gap: 16px;
+  padding: 0 12px 8px 12px;
+  border-bottom: 1px solid var(--chat-border-color);
+  flex-shrink: 0;
+}
+
+/* 覆盖 klinecharts-pro 的 Checkbox 样式以适应聊天区域 */
+.context-checkboxes .klinecharts-pro-checkbox {
+  color: var(--chat-text-second-color);
+  fill: var(--chat-text-second-color);
+  font-size: 14px;
+}
+.context-checkboxes .klinecharts-pro-checkbox.checked {
+  color: var(--chat-primary-color);
+  fill: var(--chat-primary-color);
+}

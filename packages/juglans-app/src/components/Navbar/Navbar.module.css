@@ -1,0 +1,83 @@
+.navbar {
+  height: 60px;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.iconButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--light-gray);
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.iconButton:hover {
+  background-color: var(--card-bg);
+  color: var(--primary-highlight);
+}
+
+.icon {
+  width: 24px;
+  height: 24px;
+}
+
+.middleControls {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.exchangeSelector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--card-bg);
+  padding: 8px 16px;
+  border-radius: 9999px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.exchangeSelector:hover {
+  background-color: #2a2a2a;
+}
+
+.arrowIcon {
+  width: 16px;
+  height: 16px;
+  color: var(--light-gray);
+}
+
+.modeToggle {
+  display: flex;
+  background-color: var(--card-bg);
+  border-radius: 9999px;
+  padding: 4px;
+}
+
+.modeButton {
+  background: none;
+  border: none;
+  color: var(--light-gray);
+  font-weight: 500;
+  padding: 6px 16px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.modeButton.active {
+  background-color: var(--primary-highlight);
+  color: #000;
+}

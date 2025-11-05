@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg 
+  width="480" 
+  height="480" 
+  viewBox="0 0 480 480" 
+  xmlns="http://www.w3.org/2000/svg">
+
+  <!-- 
+    说明:
+    1. 画布尺寸: 依然是 480x480。
+    2. 视觉边距: 我们设定了 60px 的边距，因此 logo 的内容区域是 360x360。
+  -->
+
+  <!-- 背景 (已修改) -->
+  <rect 
+    x="0" 
+    y="0" 
+    width="480" 
+    height="480" 
+    rx="20" 
+    ry="20" 
+    fill="#BFFF00" 
+  />
+  
+  <!--
+    Logo 图形组合 (关键改动):
+    使用了 transform 属性来同时进行缩放和定位。
+    - scale(3.6): 将原始 100x50 的图形放大 3.6 倍。
+        - 新宽度 = 100 * 3.6 = 360px。
+        - 新高度 = 50 * 3.6 = 180px。
+    - translate(60, 150): 将放大后的图形移动到画布中央。
+        - X 轴位移: (480 - 360) / 2 = 60px。
+        - Y 轴位移: (480 - 180) / 2 = 150px。
+    
+    注意: transform 的顺序很重要，这里是先缩放，再平移。
+  -->
+  <g transform="translate(60, 150) scale(3.6)">
+    
+    <!-- 
+      内部图形代码保持不变！
+      这里的坐标和尺寸 (如 d, cx, cy, r, stroke-width) 都是相对于原始 100x50 尺寸的。
+      transform 会自动处理它们的缩放。
+    -->
+    
+    <!-- 路径 (颜色已修改) -->
+    <path 
+      d="M 10 25 C 25 10, 35 10, 50 25 S 75 40, 90 25" 
+      fill="none" 
+      stroke="#000000" 
+      stroke-width="6" 
+      stroke-linecap="round" 
+      stroke-linejoin="round"
+    />
+    
+    <!-- 三个节点 (颜色已修改) -->
+    <circle cx="10" cy="25" r="6" fill="#000000"/>
+    <circle cx="50" cy="25" r="7" fill="#000000"/>
+    <circle cx="90" cy="25" r="6" fill="#000000"/>
+  </g>
+</svg>

@@ -38,12 +38,18 @@ export default class CandleLastPriceLabelView extends View {
         const { close, open } = data
         const priceY = yAxis.convertToNicePixel(close)
         let backgroundColor: string
+        let textColor: string
         if (close > open) {
           backgroundColor = lastPriceMarkStyles.upColor
+          // @ts-expect-error
+          textColor = lastPriceMarkTextStyles.upColor ?? lastPriceMarkTextStyles.color
         } else if (close < open) {
           backgroundColor = lastPriceMarkStyles.downColor
+          // @ts-expect-error
+          textColor = lastPriceMarkTextStyles.downColor ?? lastPriceMarkTextStyles.color
         } else {
           backgroundColor = lastPriceMarkStyles.noChangeColor
+          textColor = lastPriceMarkTextStyles.color
         }
         let text: string
         if (yAxis.getType() === YAxisType.Percentage) {
@@ -74,7 +80,8 @@ export default class CandleLastPriceLabelView extends View {
           },
           styles: {
             ...lastPriceMarkTextStyles,
-            backgroundColor
+            backgroundColor,
+            color: textColor
           }
         })?.draw(ctx)
       }

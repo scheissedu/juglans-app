@@ -1,0 +1,76 @@
+.model-selector {
+  position: relative;
+  display: flex;
+}
+
+.current-model-btn {
+  /* Inherits styles from .action-btn */
+}
+
+.model-logo {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+}
+.model-logo-placeholder {
+  width: 20px;
+  height: 20px;
+  background-color: #555;
+  border-radius: 4px;
+}
+
+.model-dropdown {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  width: 240px;
+  background-color: var(--chat-popover-background);
+  border: 1px solid var(--chat-border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+  padding: 8px;
+}
+
+.model-item {
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.model-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.model-item.selected {
+  background-color: var(--primary-highlight);
+}
+
+.model-logo-small {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+}
+
+.model-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.model-item .provider {
+  font-weight: 600;
+  font-size: 14px;
+  color: #fff;
+}
+.model-item .name {
+  font-size: 12px;
+  color: var(--light-gray);
+}
+
+.model-item.selected .provider,
+.model-item.selected .name {
+  color: #000;
+}

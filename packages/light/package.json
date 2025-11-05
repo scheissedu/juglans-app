@@ -1,0 +1,41 @@
+{
+  "name": "@klinecharts/light",
+  "version": "0.1.0",
+  "description": "A lightweight, minimalist chart component based on KLineChart.",
+  "type": "module",
+  "main": "./dist/klinecharts-light.umd.js",
+  "module": "./dist/klinecharts-light.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./src/index.tsx"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/klinecharts-light.umd.js"
+      }
+    }
+  },
+  "files": [
+    "dist/",
+    "src/"
+  ],
+  "scripts": {
+    "build": "tsc && vite build",
+    "build-dts": "dts-bundle-generator --no-banner true --umd-module-name klinechartslight -o dist/index.d.ts src/index.tsx"
+  },
+  "peerDependencies": {
+    "@klinecharts/core": "workspace:*",
+    "solid-js": "^1.6.11"
+  },
+  "devDependencies": {
+    "babel-preset-solid": "^1.6.10",
+    "vite-plugin-solid": "^2.6.1",
+    "less": "^4.1.3",
+    "typescript": "^4.9.5",
+    "vite": "^4.1.1",
+    "dts-bundle-generator": "^7.2.0"
+  }
+}

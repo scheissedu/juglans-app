@@ -1,0 +1,55 @@
+.kline-data-card {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background-color: var(--chat-popover-background);
+  border: 1px solid var(--chat-border-color);
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.2s;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.kline-data-card:hover {
+  border-color: var(--primary-highlight);
+}
+
+.kline-data-card .card-inner-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.kline-data-card .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.kline-data-card .card-header span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kline-data-card .card-remove-btn {
+  background: none;
+  border: none;
+  color: var(--chat-text-second-color);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 4px;
+}
+
+.kline-data-card .card-remove-btn:hover {
+  color: #ff4d4f;
+}
+
+.kline-data-card .card-summary {
+  font-size: 12px;
+  color: var(--chat-text-second-color);
+}

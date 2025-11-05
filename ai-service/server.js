@@ -1,10 +1,32 @@
-// /klinecharts-workspace/ai-service/server.js
+// ai-service/server.js
 
 import express from 'express';
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
 import cors from 'cors';
-import tools from './tools/index.js'; // +++ 导入模块化的工具 +++
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getTools } from './tools/index.js';
+import { getPrompt } from './prompts/index.js';
+import { executeCommand } from './commands/index.js';
+
+function extractTextFromTiptapJson(jsonContent) {
+  if (!jsonContent || typeof jsonContent !== 'object' || !Array.isArray(jsonContent.content)) {
+    return (jsonContent || '').toString();
+  }
+  let text = '';
+  function traverse(nodes) {
+    for (const node of nodes) {
+      if (node.type === 'text' && node.text) {
+        text += node.text;
+      }
+      if (node.content) {
+        traverse(node.content);
+      }
+    }
+  }
+  traverse(jsonContent.content);
+  return text;
+}
 
 dotenv.config();
 
@@ -17,91 +39,55 @@ const deepseek = new OpenAI({
   baseURL: 'https://api.deepseek.com',
 });
 
-app.post('/api/chat', async (req, res) => {
-  const { history, context, model } = req.body;
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const geminiFlash = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
-  if (!history || !Array.isArray(history) || history.length === 0) {
-    return res.status(400).json({ error: 'Missing or invalid history in request body' });
-  }
-
-  const lastMessage = history[history.length - 1];
-  const attachments = lastMessage.attachments || [];
-  
-  let systemContent = `你是一个专业的金融交易助手。你的主要任务是根据用户的指令执行操作。
-  
-行为准则:
-1.  **识别交易意图**: 如果用户的消息包含明确的交易指令（如买、卖、做多、做空），你 **必须** 调用 \`create_trade_suggestion\` 工具来响应。**你必须提供所有必填参数**，包括根据市场情况给出的合理的 \`stop_loss\`、\`take_profit\` 和 \`leverage\`。不要用任何文本进行确认或提问，直接调用工具。
-2.  **分析请求**: 如果用户要求进行市场分析，并且提供了K线数据或其他附件，请基于这些数据进行详细分析，并以纯文本格式回答。
-3.  **一般性问题**: 对于其他一般性问题，请直接用文本回答。
-
-`;
-
+function buildSystemContext(context) {
+  let systemContent = '';
   if (context && context.symbol) {
-    systemContent += `用户当前正在查看的图表是 **${context.symbol.ticker}**。在解析交易意图时，如果用户没有明确指定交易对，请默认使用这个。\n`;
+    systemContent += `The user is currently viewing the chart for **${context.symbol.ticker}**. When parsing trading intents, if the user does not specify a trading pair, default to this one.\n`;
   }
-
-  // +++ 新增：处理 Market Context 和 My Context +++
   if (context.marketContext) {
-    systemContent += `\n### 市场上下文 (Market Context)\n`;
-    systemContent += `1. **Ticker信息**: ${JSON.stringify(context.symbol)}\n`;
-    systemContent += `2. **最近100条K线**: ${JSON.stringify(context.klineData)}\n`;
+    systemContent += `\n### Market Context\n`;
+    systemContent += `1. **Ticker Information**: ${JSON.stringify(context.symbol)}\n`;
+    systemContent += `2. **Last 100 K-line bars**: ${JSON.stringify(context.klineData)}\n`;
   }
   if (context.myContext) {
-    systemContent += `\n### 个人上下文 (My Context)\n`;
-    systemContent += `1. **账户信息**: ${JSON.stringify(context.accountInfo)}\n`;
-    systemContent += `2. **当前持仓**: ${JSON.stringify(context.positions)}\n`;
+    systemContent += `\n### My Context\n`;
+    systemContent += `1. **Account Information**: ${JSON.stringify(context.accountInfo)}\n`;
+    systemContent += `2. **Current Positions**: ${JSON.stringify(context.positions)}\n`;
   }
+  return systemContent;
+}
 
-  if (attachments && attachments.length > 0) {
-    systemContent += '\n用户额外附加了以下数据供你分析：\n';
-    attachments.forEach((att, index) => {
-      if (att.type === 'kline') {
-        systemContent += `- 附件${index + 1}: 一段关于 ${att.symbol} 在 ${att.period} 周期下的K线数据。数据内容: ${att.data}\n`;
-      }
-      if (att.type === 'position') {
-        systemContent += `- 附件${index + 1}: 用户的当前持仓列表。数据内容: ${att.data}\n`;
-      }
-    });
+async function callAdvancedModel(res, history, context, modelName, locale) {
+  console.log(`[Advanced Model] Called. Using model: ${modelName} with locale: ${locale}`);
+  
+  const { advancedTools } = getTools(locale);
+  
+  let advancedSystemContent = getPrompt('advanced-trading-assistant', locale);
+  if (context.symbol?.ticker) {
+    advancedSystemContent += `\n\nYour instructions for the user are about the symbol: **${context.symbol.ticker}**.`;
   }
-
-  const messages = history.map(msg => {
-    const getTextFromContent = (content) => {
-      if (!content || !content.content) return '';
-      return content.content.map(node => {
-        if (node.type === 'text') return node.text;
-        if (node.content) return getTextFromContent(node);
-        return '';
-      }).join('\n');
-    };
-
-    let messageText = '';
-    if (msg.text) {
-        messageText = getTextFromContent(msg.text);
-    }
-    
-    if (msg.type === 'tool_call') {
-        return null;
-    }
-
-    return {
-      role: msg.role,
-      content: messageText,
-    };
-  }).filter(Boolean);
-
+  advancedSystemContent += buildSystemContext(context);
+  
+  const messages = history.map(msg => ({ 
+    role: msg.role === 'user' ? 'user' : 'assistant', 
+    content: extractTextFromTiptapJson(msg.text) 
+  }));
 
   try {
     const stream = await deepseek.chat.completions.create({
-      model: model || 'deepseek-chat',
+      model: modelName || 'deepseek-chat',
       messages: [
-        { role: 'system', content: systemContent },
+        { role: 'system', content: advancedSystemContent },
         ...messages
       ],
-      tools: tools, // +++ 使用导入的 tools +++
+      tools: advancedTools,
       tool_choice: 'auto',
       stream: true,
     });
-
+    
     let isToolCall = false;
     let toolCallChunks = [];
 
@@ -134,7 +120,7 @@ app.post('/api/chat', async (req, res) => {
             return acc;
         }, { function: { name: '', arguments: '' } });
         
-        console.log('AI (DeepSeek) finished tool call intent:', fullToolCall.function);
+        console.log('[Advanced Model] Finished tool call intent:', fullToolCall.function);
 
         res.json({
           type: 'tool_call',
@@ -152,12 +138,94 @@ app.post('/api/chat', async (req, res) => {
     }
 
   } catch (error) {
-    console.error('Error calling DeepSeek API:', error);
-    if (!res.headersSent) {
-      res.status(500).json({ error: 'AI service encountered an error.' });
+    console.error('[Advanced Model] Error calling API:', error);
+    if (!res.headersSent) res.status(500).json({ error: 'AI service encountered an error.' });
+    else res.end();
+  }
+}
+
+async function callFastModel(res, history, context, modelName, locale) {
+  console.log(`[Fast Model] Called. Using model: ${modelName} with locale: ${locale}`);
+  const { basicTools } = getTools(locale);
+  const fastModelSystemPrompt = getPrompt('fast-model-router', locale);
+  const lastMessageText = extractTextFromTiptapJson(history[history.length - 1].text);
+  
+  try {
+    const result = await geminiFlash.generateContent({
+      contents: [{ role: 'user', parts: [{ text: lastMessageText }] }],
+      tools: [{ functionDeclarations: basicTools.map(t => t.function) }],
+      systemInstruction: { parts: [{ text: fastModelSystemPrompt }] },
+    });
+    
+    const response = result.response;
+    const functionCalls = response.functionCalls();
+
+    if (functionCalls && functionCalls.length > 0) {
+      const call = functionCalls[0];
+      const toolName = call.name;
+      const toolParams = call.args;
+
+      console.log(`[Fast Model] Intent identified. Tool call: ${toolName}`);
+      
+      if (toolName === 'escalate_to_advanced_model') {
+        await callAdvancedModel(res, history, context, 'deepseek-chat', locale);
+      } else {
+        res.json({
+          type: 'tool_call',
+          tool_name: toolName,
+          tool_params: toolParams,
+        });
+      }
     } else {
+      const text = response.text();
+      console.log(`[Fast Model] Direct reply: ${text}`);
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.write(text);
       res.end();
     }
+  } catch (error) {
+    console.error('[Fast Model] Error during triage:', error);
+    console.log('[Fallback] Fast model failed, escalating to advanced model as a fallback.');
+    await callAdvancedModel(res, history, context, 'deepseek-chat', locale);
+  }
+}
+
+app.post('/api/chat', async (req, res) => {
+  const { history, context, model, locale = 'en-US' } = req.body;
+
+  if (!history || !Array.isArray(history) || history.length === 0) {
+    return res.status(400).json({ error: 'Missing or invalid history' });
+  }
+  
+  const lastMessageText = extractTextFromTiptapJson(history[history.length - 1].text);
+
+  if (lastMessageText.startsWith('/')) {
+    const match = lastMessageText.match(/^\/(\w+)\s*(.*)/);
+    if (match) {
+      const [, commandName, argsString] = match;
+      console.log(`[Command Engine] Attempting to execute command: /${commandName}`);
+      try {
+        const commandResult = executeCommand(commandName, argsString, context);
+        if (commandResult) {
+          console.log('[Command Engine] Command executed, returning structured response.');
+          return res.json(commandResult);
+        } else {
+          const unknownCommandMsg = `Unknown command: /${commandName}`;
+          console.log(`[Command Engine] ${unknownCommandMsg}`);
+          return res.status(200).setHeader('Content-Type', 'text/plain; charset=utf-8').end(unknownCommandMsg);
+        }
+      } catch (error) {
+        const errorMsg = `Error: ${error.message}`;
+        console.error(`[Command Engine] Error executing command: ${errorMsg}`);
+        return res.status(200).setHeader('Content-Type', 'text/plain; charset=utf-8').end(errorMsg);
+      }
+    }
+  }
+
+  if (model === 'gemini-1.5-flash-latest') {
+    await callFastModel(res, history, context, model, locale);
+  } else {
+    await callAdvancedModel(res, history, context, model, locale);
   }
 });
 

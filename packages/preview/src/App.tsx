@@ -2,10 +2,10 @@
 
 import { KLineChartPro, Resizer } from '@klinecharts/pro';
 import { onMount, Component, createSignal, onCleanup, createEffect, Show } from 'solid-js';
-import OkxDatafeed from './OkxDatafeed';
-import ChatAreaProvider from './ChatArea';
-import ChartProContext from './ChartProContext';
-import { MockBrokerAPI } from './MockBrokerAPI';
+import OkxDatafeed from './api/OkxDatafeed';
+import ChatAreaProvider from './components/chat/ChatArea';
+import ChartProContext from './context/ChartProContext';
+import { MockBrokerAPI } from './api/MockBrokerAPI';
 import { BrokerStateProvider } from '@klinecharts/pro/src/api/BrokerStateContext'; 
 import { BrokerProvider } from '@klinecharts/pro/src/api/BrokerAPIContext';
 
