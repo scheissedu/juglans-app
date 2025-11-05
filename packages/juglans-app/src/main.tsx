@@ -5,9 +5,11 @@ import { BrokerStateProvider } from '@klinecharts/pro/src/api/BrokerStateContext
 import { ChatAreaProvider } from './components/chat/ChatArea';
 
 import App from './App';
-import ChartPage from './pages/ChartPage';
-import WalletPage from './pages/WalletPage';
-import MarketPage from './pages/MarketPage';
+import { lazy } from 'solid-js';
+
+const ChartPage = lazy(() => import('./pages/ChartPage'));
+const WalletPage = lazy(() => import('./pages/WalletPage'));
+const MarketPage = lazy(() => import('./pages/MarketPage'));
 
 import './index.css';
 
