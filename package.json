@@ -3,6 +3,10 @@
   "private": true,
   "version": "1.0.0",
   "description": "Monorepo for KLineChart",
+  "workspaces": [
+    "packages/*",
+    "ai-service"
+  ],
   "scripts": {
     "build": "pnpm --filter \"@klinecharts/*\" build",
     "build:core": "pnpm --filter \"@klinecharts/core\" build",
