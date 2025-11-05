@@ -38,6 +38,9 @@ const App: Component<ParentProps> = (props) => {
   const navigate = useNavigate();
   const [isWideLayout, setIsWideLayout] = createSignal(window.innerWidth > 1000);
 
+  // --- 核心修改 1: 为图表容器创建一个 ref ---
+  let chartWrapperRef: HTMLDivElement | undefined;
+
   onMount(() => {
     const brokerApi = state.brokerApi;
     if (brokerApi) {
@@ -100,6 +103,28 @@ const App: Component<ParentProps> = (props) => {
     });
   });
 
+  // --- 核心修改 2: 添加 ResizeObserver 来监听图表容器尺寸变化 ---
+  createEffect(() => {
+    if (!chartWrapperRef) return;
+
+    let resizeTimeout: number;
+    const debouncedResize = () => {
+      clearTimeout(resizeTimeout);
+      // 使用 setTimeout 进行防抖，避免在高频尺寸变化时过度消耗性能
+      resizeTimeout = setTimeout(() => {
+        state.chart?.getChart()?.resize();
+      }, 100);
+    };
+
+    const observer = new ResizeObserver(debouncedResize);
+    observer.observe(chartWrapperRef);
+
+    onCleanup(() => {
+      clearTimeout(resizeTimeout);
+      observer.disconnect();
+    });
+  });
+
   createEffect(() => {
     location.pathname;
     setTimeout(() => state.chart?.getChart()?.resize(), 100);
@@ -119,24 +144,42 @@ const App: Component<ParentProps> = (props) => {
 
   const chartWrapperStyle = () => (isWideLayout()
     ? { flex: '1', 'min-width': '0', height: '100%', position: 'relative' }
-    : { height: '400px', position: 'relative', 'flex-shrink': '0' }
+    : { flex: '1', 'min-height': '0', position: 'relative' }
   );
 
   const chatWrapperStyle = () => (isWideLayout()
     ? { width: '350px', 'flex-shrink': '0', height: '100%', display: 'flex', 'flex-direction': 'column', 'border-left': '1px solid var(--border-color)' }
-    : { flex: '1', 'min-height': '0', 'margin-top': '12px', display: 'flex', 'flex-direction': 'column', 'border-radius': '8px', 'overflow': 'hidden', 'border': '1px solid var(--border-color)' }
+    : { 
+        'max-height': 'min(400px, 50%)',
+        'flex-shrink': '0', 
+        'margin-top': '12px', 
+        display: 'flex', 
+        'flex-direction': 'column', 
+        'border-radius': '8px', 
+        'overflow': 'hidden', 
+      }
   );
 
   return (
     <>
       <style>{responsiveStyles}</style>
-      <div style={{ position: 'relative', height: '100vh', width: '100vw' }}>
+      <div 
+        style={{ 
+          position: 'fixed', 
+          top: '0', 
+          left: '0', 
+          right: '0', 
+          bottom: '0',
+          'overflow': 'hidden' 
+        }}
+      >
         <div class="global-glow-border" />
         <div class="app-layout" classList={{ 'app-layout-wide': isWideLayout() }}>
           <Navbar onModeSelectorClick={() => setModeSelectorOpen(true)} />
           
           <div class="main-content-area">
-            <div class="chart-page-wrapper" style={chartWrapperStyle()}>
+            {/* --- 核心修改 3: 将 ref 绑定到 div 上 --- */}
+            <div class="chart-page-wrapper" ref={chartWrapperRef} style={chartWrapperStyle()}>
               <Show when={props.children} fallback={<div>Loading Page...</div>}>
                 {props.children}
               </Show>
