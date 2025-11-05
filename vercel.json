@@ -4,16 +4,21 @@
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
-        "buildCommand": "pnpm install && pnpm --filter \"@klinecharts/juglans-app^...\" build",
+        "buildCommand": "pnpm --filter \"@klinecharts/juglans-app^...\" build",
         "distDir": "packages/juglans-app/dist"
       }
     },
     {
-      "src": "ai-service/package.json",
+      "src": "ai-service/server.js",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": "server.js", 
-        "installCommand": "pnpm install" 
+        "includeFiles": [
+          "ai-service/package.json",
+          "ai-service/prompts/**",
+          "ai-service/tools/**",
+          "ai-service/commands/**",
+          "ai-service/i18n/**"
+        ]
       }
     }
   ],
