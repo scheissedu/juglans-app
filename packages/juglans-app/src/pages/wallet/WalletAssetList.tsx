@@ -1,33 +1,45 @@
+// packages/juglans-app/src/pages/wallet/WalletAssetList.tsx
+
 import { Component, For, Show } from 'solid-js';
 import WalletAssetListItem from './WalletAssetListItem';
-// 1. 移除对 Pro Empty 的导入
-// import { Empty } from '@klinecharts/pro'; 
-import EmptyState from '../../components/common/EmptyState'; // 2. 导入我们自己的组件
+import EmptyState from '../../components/common/EmptyState';
 import './Wallet.css';
+import { AssetBalance } from '@klinecharts/pro';
 
 export interface AggregatedAsset {
   symbol: string;
-  name: string;
+  balance: AssetBalance;
   usdValue: number;
-  amount: number;
 }
 
 interface WalletAssetListProps {
   assets: AggregatedAsset[];
+  onSend: (symbol: string) => void;
+  onReceive: (symbol: string) => void;
 }
 
 const WalletAssetList: Component<WalletAssetListProps> = (props) => {
   return (
     <div class="wallet-asset-list-container">
-      <div class="wallet-asset-list-header">My Assets</div>
       <div class="wallet-asset-list-items">
         <Show 
           when={props.assets.length > 0}
-          // 3. 使用新的 EmptyState 组件
           fallback={<EmptyState message="No Assets Yet" />}
         >
+          <div class="wallet-list-header">
+            <span>Asset</span>
+            <span>Total</span>
+            <span>Available</span>
+            <span>Actions</span>
+          </div>
           <For each={props.assets}>
-            {(asset) => <WalletAssetListItem {...asset} />}
+            {(asset) => (
+              <WalletAssetListItem 
+                asset={asset} 
+                onSend={props.onSend}
+                onReceive={props.onReceive}
+              />
+            )}
           </For>
         </Show>
       </div>

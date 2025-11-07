@@ -5,7 +5,8 @@ import { useParams } from '@solidjs/router';
 import { useAppContext } from '../context/AppContext';
 import ChartContainer from '../components/ChartContainer';
 import { createChartChatExtension } from '../components/chat/extensions/chart';
-import { useEditor } from '../context/EditorContext';
+// --- 核心修改：使用路径别名 @ ---
+import { useEditor } from '@/context/EditorContext';
 
 const ChartPage: Component = () => {
   console.log('[ChartPage.tsx] Component rendering...');
@@ -14,7 +15,6 @@ const ChartPage: Component = () => {
   const { editor } = useEditor();
   const params = useParams();
 
-  // --- 核心修正：移除 handleRobotSelection 函数和相关的事件监听 ---
   onMount(() => {
     console.log('[ChartPage.tsx] onMount: Registering chart chat extension.');
     const extension = createChartChatExtension([state, actions], editor);
@@ -23,11 +23,11 @@ const ChartPage: Component = () => {
   
   onCleanup(() => {
     console.log('[ChartPage.tsx] onCleanup: Unregistering chart chat extension.');
+    // 检查当前活动的扩展是否是本页面注册的，如果是，则清理
     if (state.chatExtension && state.chatExtension.getCommands().some(c => c.key === 'add_klines')) {
         actions.setChatExtension(null);
     }
   });
-  // --- 修正结束 ---
 
   createEffect(on(() => params.symbol, (ticker) => {
     if (ticker && ticker !== state.symbol.ticker) {

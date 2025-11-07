@@ -1,50 +1,28 @@
 import { Component, createMemo, Show, createSignal } from 'solid-js';
 import type { Position } from '@klinecharts/pro';
 import PositionModal from '../../modals/PositionModal';
-import { useAppContext } from '../../../context/AppContext'; // 1. 导入 useAppContext
-import { KLineChartPro } from '@klinecharts/pro'; // 2. 导入 KLineChartPro 用于类型检查
-import './KLineDataCard.css';
-
-const CardContent: Component<{
-  summary: string;
-  deleteNode?: () => void;
-  onClick: () => void;
-}> = (props) => (
-  <div class="card-inner-content" onClick={props.onClick}>
-    <div class="card-header">
-      <span>📊 My Positions</span>
-      <Show when={props.deleteNode}>
-        <button
-          class="card-remove-btn"
-          onClick={(e) => { e.stopPropagation(); props.deleteNode?.(); }}
-        >
-          ×
-        </button>
-      </Show>
-    </div>
-    <div class="card-summary">
-      {props.summary}
-    </div>
-  </div>
-);
+import { useAppContext } from '../../../context/AppContext';
+import { KLineChartPro } from '@klinecharts/pro';
+import PositionCardIcon from './icons/PositionCardIcon'; // 导入新图标
+import './KLineDataCard.css'; // 复用部分样式
+import './BalanceCard.css'; // 复用新的卡片样式
 
 const PositionCard: Component<{
   node: { attrs: { data: string } };
   deleteNode?: () => void;
 }> = (props) => {
   const [modalVisible, setModalVisible] = createSignal(false);
-  const [state] = useAppContext(); // 3. 获取全局 state
+  const [state] = useAppContext();
 
-  // 4. 新增 memo 来获取主题
   const currentTheme = createMemo(() => {
     const chart = state.chart;
     if (chart instanceof KLineChartPro) {
       return chart.getTheme() as 'light' | 'dark';
     }
-    return 'dark'; // 默认主题
+    return 'dark';
   });
   
-  const positions = createMemo(() => {
+  const positions = createMemo((): Position[] => {
     try {
       return JSON.parse(props.node.attrs.data) as Position[];
     } catch (e) {
@@ -52,7 +30,7 @@ const PositionCard: Component<{
     }
   });
 
-  const summary = createMemo(() => {
+  const summaryText = createMemo(() => {
     const data = positions();
     if (data.length === 0) return 'No open positions';
     const longCount = data.filter(p => p.side === 'long').length;
@@ -60,23 +38,32 @@ const PositionCard: Component<{
     return `${data.length} open positions: ${longCount} long, ${shortCount} short.`;
   });
 
-  const openModal = () => setModalVisible(true);
+  const openModal = (e: MouseEvent) => {
+    e.stopPropagation(); // 阻止事件冒泡到父div，避免切换展开状态
+    setModalVisible(true);
+  };
   const closeModal = () => setModalVisible(false);
 
   return (
     <>
-      <div class="kline-data-card">
-        <CardContent 
-          summary={summary()}
-          deleteNode={props.deleteNode}
-          onClick={openModal}
-        />
+      <div class="summary-card-wrapper" onClick={openModal}>
+        <div class="summary-card summary-view">
+            <div class="card-header">
+              <span class="header-title"><PositionCardIcon /> My Positions</span>
+              <Show when={props.deleteNode}>
+                <button class="card-remove-btn" onClick={(e) => { e.stopPropagation(); props.deleteNode?.(); }}>×</button>
+              </Show>
+            </div>
+            <div class="summary-content">
+              {summaryText()}
+            </div>
+        </div>
       </div>
 
       <Show when={modalVisible()}>
         <PositionModal
           positions={positions()}
-          theme={currentTheme()} // 5. 将主题作为 prop 传递
+          theme={currentTheme()}
           onClose={closeModal}
         />
       </Show>

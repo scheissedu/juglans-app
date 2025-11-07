@@ -81,3 +81,36 @@
   background-color: var(--primary-highlight);
   color: #000;
 }
+
+/* Right-side user actions styles */
+.userActions {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Spacing between buttons in logged-in state */
+}
+
+.authLinks a {
+  color: var(--light-gray);
+  text-decoration: none;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background-color 0.2s, color 0.2s;
+  margin-left: 8px;
+}
+
+.authLinks a:hover {
+  background-color: var(--card-bg);
+  color: #fff;
+}
+
+.authLinks .registerLink {
+  background-color: var(--primary-highlight);
+  color: #000;
+}
+
+.authLinks .registerLink:hover {
+  opacity: 0.9;
+  background-color: var(--primary-highlight);
+  color: #000;
+}

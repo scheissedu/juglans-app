@@ -1,6 +1,6 @@
 import {
   BrokerAPI, BrokerCallbacks, Order, OrderParams, Position, AccountInfo,
-  Execution, InstrumentInfo, SymbolInfo, OrderStatus, OrderSide, PositionSide
+  Execution, InstrumentInfo, SymbolInfo, OrderStatus, OrderSide, PositionSide, AssetBalance
 } from '@klinecharts/pro';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -14,58 +14,92 @@ interface MockBrokerState {
   nextPositionId: number;
 }
 
-const LOCAL_STORAGE_KEY = 'klinecharts_pro_mock_broker_state';
-
 export class MockBrokerAPI implements BrokerAPI {
+  // --- 核心修改 1: 添加一个私有成员变量来存储 localStorage 的 key ---
+  private _localStorageKey: string;
+  
   private _callbacks: BrokerCallbacks | null = null;
-  private _state: MockBrokerState = this._loadState();
+  private _state: MockBrokerState;
   private _lastPrices: Map<string, number> = new Map();
 
+  // --- 核心修改 2: 添加构造函数来接收动态的 storageKey ---
+  constructor(storageKey: string) {
+    this._localStorageKey = storageKey;
+    this._state = this._loadState();
+    console.log(`[MockBrokerAPI] Initialized with storage key: ${this._localStorageKey}`);
+  }
+
   private _loadState(): MockBrokerState {
+    const defaultState = this._getDefaultState();
     try {
-      const savedState = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (savedState) {
-        console.log('[MockBroker] Loaded state from localStorage.');
-        const state = JSON.parse(savedState);
+      // --- 核心修改 3: 使用动态的 key 从 localStorage 加载数据 ---
+      const savedStateString = localStorage.getItem(this._localStorageKey);
+      if (savedStateString) {
+        console.log(`[MockBroker] Loaded state from localStorage using key: ${this._localStorageKey}`);
+        const savedState = JSON.parse(savedStateString);
+        // Safely merge saved state with default state to handle new fields
         return {
-          ...this._getDefaultState(),
-          ...state,
+          ...defaultState,
+          ...savedState,
           accountInfo: {
-            ...this._getDefaultState().accountInfo,
-            ...(state.accountInfo || {})
-          }
+            ...defaultState.accountInfo,
+            ...(savedState.accountInfo || {}),
+            balances: { // Ensure balances object exists
+                ...defaultState.accountInfo.balances,
+                ...(savedState.accountInfo?.balances || {}),
+            }
+          },
         };
       }
     } catch (e) {
       console.error("[MockBroker] Failed to load state from localStorage", e);
     }
-    return this._getDefaultState();
+    return defaultState;
   }
 
   private _saveState() {
     try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(this._state));
+      // --- 核心修改 4: 使用动态的 key 保存数据到 localStorage ---
+      localStorage.setItem(this._localStorageKey, JSON.stringify(this._state));
     } catch (e) {
       console.error("[MockBroker] Failed to save state to localStorage", e);
     }
   }
 
   private _getDefaultState(): MockBrokerState {
+    const initialUSDT = 100000;
     return {
       accountInfo: {
         id: 'mock_account_001', name: 'Demo Account', currency: 'USD',
-        balance: 100000, equity: 100000, realizedPnl: 0, unrealizedPnl: 0,
-        margin: 0, orderMargin: 0, availableFunds: 100000
+        balance: initialUSDT, equity: initialUSDT, realizedPnl: 0, unrealizedPnl: 0,
+        margin: 0, orderMargin: 0, availableFunds: initialUSDT,
+        balances: {
+          'USDT': { free: initialUSDT, locked: 0, total: initialUSDT }
+        }
       },
       positions: [], orders: [], executions: [],
       nextOrderId: 1, nextPositionId: 1,
     };
   }
-
+  
+  // 其余所有方法保持不变...
   private _recalculateAccountMetrics() {
+    const accountInfo = this._state.accountInfo;
+    
+    let totalSpotBalance = 0;
+    for (const symbol in accountInfo.balances) {
+        const balance = accountInfo.balances[symbol];
+        if (symbol === 'USDT' || symbol === 'USD') {
+            totalSpotBalance += balance.total;
+        } else {
+            const price = this._lastPrices.get(`${symbol}-USDT`) ?? 0;
+            totalSpotBalance += balance.total * price;
+        }
+    }
+    accountInfo.balance = totalSpotBalance;
+
     let totalUnrealizedPnl = 0;
     let totalMargin = 0;
-
     this._state.positions.forEach(pos => {
       const lastPrice = this._lastPrices.get(pos.symbol) ?? pos.avgPrice;
       const pnl = (lastPrice - pos.avgPrice) * pos.qty * (pos.side === 'long' ? 1 : -1);
@@ -73,12 +107,11 @@ export class MockBrokerAPI implements BrokerAPI {
       totalUnrealizedPnl += pnl;
       totalMargin += (pos.avgPrice * pos.qty) / (pos.leverage ?? 10);
     });
-
-    const accountInfo = this._state.accountInfo;
+    
     accountInfo.unrealizedPnl = totalUnrealizedPnl;
     accountInfo.equity = accountInfo.balance + totalUnrealizedPnl;
     accountInfo.margin = totalMargin;
-    accountInfo.orderMargin = 0;
+    accountInfo.orderMargin = 0; // Simplified for now
     accountInfo.availableFunds = accountInfo.equity - accountInfo.margin - accountInfo.orderMargin;
 
     this._callbacks?.onAccountInfoUpdate(this._state.accountInfo);
@@ -86,7 +119,6 @@ export class MockBrokerAPI implements BrokerAPI {
   
   updatePrice(symbol: string, price: number) {
     this._lastPrices.set(symbol, price);
-
     let positionsUpdated = false;
     this._state.positions.forEach(pos => {
       if (pos.symbol === symbol) {
@@ -118,6 +150,41 @@ export class MockBrokerAPI implements BrokerAPI {
   async getInstrumentInfo(symbol: SymbolInfo): Promise<InstrumentInfo> {
     await sleep(100);
     return Promise.resolve({ symbol: symbol.ticker, pricePrecision: 2, qtyPrecision: 4, minQty: 0.0001, maxQty: 10000, lotSize: 0.0001 });
+  }
+
+  async deposit(asset: string, amount: number): Promise<void> {
+    await sleep(500);
+    if (amount <= 0) {
+      throw new Error("Deposit amount must be positive.");
+    }
+    
+    if (!this._state.accountInfo.balances[asset]) {
+      this._state.accountInfo.balances[asset] = { free: 0, locked: 0, total: 0 };
+    }
+    const balance = this._state.accountInfo.balances[asset];
+    balance.free += amount;
+    balance.total += amount;
+    
+    console.log(`[MockBroker] Deposited ${amount} ${asset}. New balance:`, balance);
+    this._recalculateAccountMetrics();
+    this._callbacks?.onAccountInfoUpdate(this._state.accountInfo);
+    this._saveState();
+  }
+
+  async withdraw(asset: string, amount: number): Promise<void> {
+    await sleep(500);
+    const balance = this._state.accountInfo.balances[asset];
+    if (!balance || balance.free < amount || amount <= 0) {
+      throw new Error("Insufficient funds for withdrawal.");
+    }
+    
+    balance.free -= amount;
+    balance.total -= amount;
+    
+    console.log(`[MockBroker] Withdrew ${amount} ${asset}. New balance:`, balance);
+    this._recalculateAccountMetrics();
+    this._callbacks?.onAccountInfoUpdate(this._state.accountInfo);
+    this._saveState();
   }
 
   async placeOrder(orderParams: OrderParams): Promise<void> {
@@ -176,7 +243,6 @@ export class MockBrokerAPI implements BrokerAPI {
       this._saveState();
     }, 1000);
   }
-
   async closePosition(positionId: string, qty?: number): Promise<void> { /* ... (unchanged) ... */ }
   async modifyPosition(positionId: string, sl_tp: { stopLoss?: number; takeProfit?: number }): Promise<void> { /* ... (unchanged) ... */ }
   async modifyOrder(order: OrderParams): Promise<void> { /* Not implemented */ }

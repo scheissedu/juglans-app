@@ -1,3 +1,5 @@
+// packages/juglans-app/src/components/chat/ChatArea.tsx
+
 import { Component, createSignal, For, onCleanup, Show, createEffect, onMount, createMemo, ParentProps } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
 import { Portal } from 'solid-js/web';
@@ -23,14 +25,15 @@ import MessageRenderer from './MessageRenderer';
 import SuggestionList, { type SuggestionItem } from './SuggestionList';
 import ContextCheckboxes from './ContextCheckboxes';
 import { executeToolCall } from './tools';
-import { KLineDataCard, PositionCard, TradeSuggestionCard } from './cards';
+import { KLineDataCard, PositionCard, TradeSuggestionCard, BalanceCard } from './cards';
 import { KLineChartPro, OrderParams } from '@klinecharts/pro';
 import ModelSelector, { Model } from './ModelSelector';
 
 export interface ImageAttachment { type: 'image'; url: string; id: string; }
 export interface KLineAttachment { type: 'kline'; symbol: string; period: string; data: string; id: string; }
 export interface PositionAttachment { type: 'position'; data: string; id: string; }
-export type Attachment = ImageAttachment | KLineAttachment | PositionAttachment;
+export interface BalanceAttachment { type: 'balance'; data: string; id: string; }
+export type Attachment = ImageAttachment | KLineAttachment | PositionAttachment | BalanceAttachment;
 
 export interface TextMessage {
   role: 'user' | 'assistant';
@@ -206,16 +209,37 @@ export const ChatArea: Component = () => {
         delete context.marketContext;
       }
       
-
       const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/api/chat`;
+
+      // --- 核心修正：添加 Authorization Header ---
+      if (!state.token) {
+        // 如果 token 不存在，可以选择登出或提示用户
+        actions.logout();
+        throw new Error("Authentication token is missing. You have been logged out.");
+      }
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${state.token}`
+      };
+      // --- 修正结束 ---
+
       const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headers, // 使用包含 token 的 headers
         body: JSON.stringify({ history: historyForAPI, context: context, model: selectedModelId() }),
       });
       
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-      setMessages(produce(msgs => { msgs.pop(); }));
+      // 如果收到 401 或 403，意味着 token 失效，自动登出
+      if (response.status === 401 || response.status === 403) {
+        actions.logout();
+        throw new Error("Your session has expired. Please log in again.");
+      }
+
+      if (!response.ok) {
+        throw new Error(`API error! status: ${response.status}`);
+      }
+      
+      setMessages(produce(msgs => { msgs.pop(); })); // 移除 'thinking' 消息
       
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
@@ -304,8 +328,8 @@ export const ChatArea: Component = () => {
               };
             },
             command: ({ editor: edt, range, props: cmdProps }) => { 
-              chatExtension()?.handleCommand(cmdProps.item, edt);
               edt.chain().focus().deleteRange(range).run(); 
+              chatExtension()?.handleCommand(cmdProps.item, edt);
             },
           },
           char: '@',
@@ -375,6 +399,7 @@ export const ChatArea: Component = () => {
                               if (att.type === 'image') return <img src={(att as ImageAttachment).url} class="message-attachment-image" alt="attachment" />;
                               if (att.type === 'kline') return <KLineDataCard node={{ attrs: att as any }} />;
                               if (att.type === 'position') return <PositionCard node={{ attrs: att as any }} />;
+                              if (att.type === 'balance') return <BalanceCard node={{ attrs: att as any }} />;
                               return null;
                             }
                           }</For>
@@ -441,7 +466,7 @@ export const ChatArea: Component = () => {
                     <Show when={att.type === 'image'}><img src={(att as ImageAttachment).url} alt="preview"/></Show>
                     <Show when={att.type === 'kline'}><KLineDataCard node={{ attrs: att as any }} deleteNode={() => removeAttachment(att.id)} /></Show>
                     <Show when={att.type === 'position'}><PositionCard node={{ attrs: att as any }} deleteNode={() => removeAttachment(att.id)} /></Show>
-                    {/* --- 核心修正：下面的按钮已被删除 --- */}
+                    <Show when={att.type === 'balance'}><BalanceCard node={{ attrs: att as any }} deleteNode={() => removeAttachment(att.id)} /></Show>
                   </div>
                 )}
               </For>

@@ -1,0 +1,170 @@
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1999;
+  opacity: 0;
+  transition: opacity 0.3s ease-out;
+  pointer-events: none;
+}
+
+.sidebar-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sidebar-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 85%;
+  max-width: 280px;
+  background-color: #0D0D0D; /* Slightly darker than card-bg for depth */
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  box-sizing: border-box;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease-out;
+  border-right: 1px solid var(--border-color);
+}
+
+.sidebar-nav.open {
+  transform: translateX(0);
+}
+
+@media (min-width: 768px) {
+  .sidebar-nav {
+    width: 260px;
+    max-width: 260px;
+  }
+  .sidebar-overlay.open {
+    background-color: transparent; /* On desktop, don't darken the main content */
+  }
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.sidebar-logo {
+  height: 28px;
+}
+
+.sidebar-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.nav-item a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--light-gray);
+  font-weight: 500;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.nav-item a:hover {
+  background-color: var(--card-bg);
+  color: #fff;
+}
+
+.nav-item a .nav-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.sidebar-banner {
+  flex-grow: 1;
+  /* Placeholder for future banner content */
+}
+
+.sidebar-footer {
+  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: var(--primary-highlight);
+  color: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.user-info .username {
+  font-weight: 600;
+  color: #fff;
+}
+
+.user-info .plan {
+  font-size: 12px;
+  color: var(--light-gray);
+}
+
+.upgrade-button {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.upgrade-button:hover {
+  background-color: #2a2a2a;
+}
+
+/* --- 核心修正：为 Sidebar 中的 iconButton 添加样式 --- */
+
+.sidebar-header .iconButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--light-gray); /* 设置图标颜色 */
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.sidebar-header .iconButton:hover {
+  background-color: var(--card-bg);
+  color: var(--primary-highlight); /* 鼠标悬停时高亮 */
+}
+
+.sidebar-header .iconButton .icon {
+  width: 24px;
+  height: 24px;
+}

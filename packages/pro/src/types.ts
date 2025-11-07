@@ -45,6 +45,12 @@ export interface Execution {
   feeCurrency?: string;
 }
 
+export interface AssetBalance {
+  free: number;
+  locked: number;
+  total: number;
+}
+
 export interface AccountInfo {
   id: string;
   name: string;
@@ -56,6 +62,7 @@ export interface AccountInfo {
   margin?: number;
   orderMargin?: number;
   availableFunds?: number;
+  balances: Record<string, AssetBalance>;
 }
 
 export interface InstrumentInfo {
@@ -100,6 +107,8 @@ export interface BrokerAPI {
   subscribe(callbacks: BrokerCallbacks): void;
   unsubscribe(): void;
   updatePrice?(symbol: string, price: number): void;
+  deposit(asset: string, amount: number): Promise<void>;
+  withdraw(asset: string, amount: number): Promise<void>;
 }
 
 export interface HistoryKLineDataParams {

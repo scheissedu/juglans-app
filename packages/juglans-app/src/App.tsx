@@ -8,6 +8,7 @@ import { useBrokerState } from '@klinecharts/pro';
 import Navbar from './components/Navbar/Navbar';
 import { ChatArea } from './components/chat/ChatArea';
 import ModeSelectorModal from './components/modals/ModeSelectorModal';
+import Sidebar from './components/Sidebar/Sidebar';
 
 const responsiveStyles = `
   .app-layout {
@@ -34,6 +35,7 @@ const App: Component<ParentProps> = (props) => {
   const [state, actions] = useAppContext();
   const [, setBrokerState] = useBrokerState();
   const [isModeSelectorOpen, setModeSelectorOpen] = createSignal(false);
+  const [isSidebarOpen, setSidebarOpen] = createSignal(false);
   const location = useLocation();
   const navigate = useNavigate();
   const [isWideLayout, setIsWideLayout] = createSignal(window.innerWidth > 1000);
@@ -175,8 +177,7 @@ const App: Component<ParentProps> = (props) => {
       >
         <div class="global-glow-border" />
         <div class="app-layout" classList={{ 'app-layout-wide': isWideLayout() }}>
-          <Navbar onModeSelectorClick={() => setModeSelectorOpen(true)} />
-          
+          <Navbar onGridClick={() => setSidebarOpen(true)} onModeSelectorClick={() => setModeSelectorOpen(true)} />
           <div class="main-content-area">
             {/* --- 核心修改 3: 将 ref 绑定到 div 上 --- */}
             <div class="chart-page-wrapper" ref={chartWrapperRef} style={chartWrapperStyle()}>
@@ -190,6 +191,7 @@ const App: Component<ParentProps> = (props) => {
             </div>
           </div>
         </div>
+        <Sidebar isOpen={isSidebarOpen()} onClose={() => setSidebarOpen(false)} />
         <ModeSelectorModal 
           isOpen={isModeSelectorOpen} 
           onClose={() => setModeSelectorOpen(false)} 

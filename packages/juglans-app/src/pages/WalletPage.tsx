@@ -1,107 +1,140 @@
 import { Component, onMount, onCleanup, createMemo, createSignal, Show } from 'solid-js';
 import { useAppContext, ChatExtension } from '../context/AppContext';
 import { useBrokerState } from '@klinecharts/pro';
-import { SuggestionItem } from '../components/chat/SuggestionList';
-import type { Position } from '@klinecharts/pro';
+import { produce } from 'solid-js/store';
+import { useEditor } from '@/context/EditorContext';
+import { createWalletChatExtension } from '@/components/chat/extensions/wallet';
 
-// 导入核心组件
+// 导入子组件
 import WalletSummary from './wallet/WalletSummary';
 import WalletActions from './wallet/WalletActions';
 import WalletAssetList, { AggregatedAsset } from './wallet/WalletAssetList';
+import WalletPositionsList from './wallet/WalletPositionsList';
 import ReceiveModal from './wallet/ReceiveModal';
 import SendModal from './wallet/SendModal';
 
+// 导入样式
+import './WalletPage.css';
+import './wallet/Wallet.css';
+
 const WalletPage: Component = () => {
   const [state, actions] = useAppContext();
-  const [brokerState] = useBrokerState();
+  const [brokerState, setBrokerState] = useBrokerState();
+  const { editor } = useEditor();
   
-  // State for controlling modals
+  const [activeTab, setActiveTab] = createSignal<'assets' | 'positions'>('assets');
   const [isReceiveModalOpen, setReceiveModalOpen] = createSignal(false);
   const [isSendModalOpen, setSendModalOpen] = createSignal(false);
+  const [selectedAsset, setSelectedAsset] = createSignal('USDT');
 
-  // A mock wallet address
   const myWalletAddress = "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B";
 
-  // 使用 createMemo 来派生和聚合资产列表
-  const aggregatedAssets = createMemo(() => {
-    // 检查 brokerState.positions 是否存在且是一个数组
-    if (!brokerState.positions || !Array.isArray(brokerState.positions)) {
-      return [];
-    }
+  const aggregatedAssets = createMemo((): AggregatedAsset[] => {
+    const balances = brokerState.accountInfo?.balances;
+    if (!balances) return [];
 
-    const assetMap = new Map<string, { amount: number; usdValue: number; name: string }>();
-
-    for (const position of brokerState.positions) {
-      // 从 "BTC-USDT" 中提取 "BTC"
-      const baseSymbol = position.symbol.split('-')[0];
-      
-      // 假设 position 的价值就是它的数量 * 平均价格
-      const positionValue = position.qty * position.avgPrice;
-
-      if (assetMap.has(baseSymbol)) {
-        const existing = assetMap.get(baseSymbol)!;
-        existing.amount += position.qty;
-        existing.usdValue += positionValue;
-      } else {
-        assetMap.set(baseSymbol, {
-          amount: position.qty,
-          usdValue: positionValue,
-          name: baseSymbol, // 理想情况下，我们应该从 SymbolInfo 中获取全名
-        });
-      }
-    }
-
-    // 将 Map 转换为数组并排序
-    const sortedAssets: AggregatedAsset[] = Array.from(assetMap.entries()).map(([symbol, data]) => ({
-      symbol: symbol,
-      name: data.name,
-      amount: data.amount,
-      usdValue: data.usdValue,
-    }));
-
-    // 按美元价值降序排序
-    return sortedAssets.sort((a, b) => b.usdValue - a.usdValue);
+    return Object.entries(balances)
+      .map(([symbol, balance]) => {
+        let usdValue = 0;
+        if (symbol === 'USDT' || symbol === 'USD') {
+            usdValue = balance.total;
+        } else {
+            const mockPrices: Record<string, number> = { 'BTC': 65000, 'ETH': 3500 };
+            usdValue = balance.total * (mockPrices[symbol] || 0);
+        }
+        return { symbol, balance, usdValue };
+      })
+      .sort((a, b) => b.usdValue - a.usdValue);
   });
 
+  const handleOpenSend = (symbol: string) => {
+    setSelectedAsset(symbol);
+    setSendModalOpen(true);
+  };
+
+  const handleOpenReceive = (symbol: string) => {
+    setSelectedAsset(symbol);
+    setReceiveModalOpen(true);
+  };
+  
+  const refetchPositions = async () => {
+    const brokerApi = state.brokerApi;
+    try {
+      const positions = await brokerApi.getPositions();
+      setBrokerState('positions', produce(p => {
+        p.splice(0, p.length, ...positions);
+      }));
+    } catch (e) {
+      console.error("Failed to refetch positions", e);
+    }
+  };
+
+  const mockDeposit = async () => {
+    try {
+      await state.brokerApi.deposit('USDT', 10000);
+      await state.brokerApi.deposit('BTC', 0.5);
+      await state.brokerApi.deposit('ETH', 10);
+      alert("Mock assets have been deposited!");
+    } catch (e: any) {
+      alert(`Deposit failed: ${e.message}`);
+    }
+  };
+
   onMount(() => {
-    // 注册 Wallet 页面的聊天扩展
-    const walletExtension: ChatExtension = {
-      getContext: () => ({ myContext: true, accountInfo: brokerState.accountInfo, positions: brokerState.positions }),
-      getCommands: () => [
-        { key: 'show_balance', label: 'Show Balance', description: 'Display current wallet balance.' },
-        { key: 'list_assets', label: 'List Assets', description: 'List all assets in the wallet.' }
-      ],
-      handleCommand: (item: SuggestionItem, editor) => {
-        const message = `Executing wallet command: ${item.label}`;
-        editor?.chain().focus().insertContent(message).run();
-        actions.sendMessage(message);
-      },
-      getQuickSuggestions: () => [
-        { text: "我的余额", sendImmediately: true },
-        { text: "最近交易", sendImmediately: true },
-      ],
-      getAttachmentActions: () => []
-    };
+    console.log('[WalletPage] Mounting and registering wallet chat extension.');
+    const walletExtension = createWalletChatExtension(
+      [state, actions],
+      brokerState,
+      mockDeposit
+    );
     actions.setChatExtension(walletExtension);
   });
 
   onCleanup(() => {
-    // 离开页面时注销
-    if (state.chatExtension && state.chatExtension.getCommands().some(c => c.key === 'show_balance')) {
+    console.log('[WalletPage] Cleaning up, unregistering wallet chat extension.');
+    if (state.chatExtension && state.chatExtension.getCommands().some(c => c.key === 'balance')) {
         actions.setChatExtension(null);
     }
   });
   
   return (
-    <div style={{ "overflow-y": "auto", height: "100%" }}>
-      <WalletSummary accountInfo={brokerState.accountInfo} />
+    <div style={{ "height": "100%", "display": "flex", "flex-direction": "column" }}>
+      <div style={{ "overflow-y": "auto", "flex-shrink": "1" }}>
+        <WalletSummary accountInfo={brokerState.accountInfo} />
+        
+        {/*
+        <WalletActions 
+          onSendClick={() => handleOpenSend('USDT')}
+          onReceiveClick={() => handleOpenReceive('USDT')}
+          onMockDepositClick={mockDeposit} 
+        />
+        */}
+      </div>
       
-      <WalletActions 
-        onSendClick={() => setSendModalOpen(true)}
-        onReceiveClick={() => setReceiveModalOpen(true)}
-      />
+      <div class="wallet-tabs">
+        <button class={`tab-item ${activeTab() === 'assets' ? 'active' : ''}`} onClick={() => setActiveTab('assets')}>
+          Assets
+        </button>
+        <button class={`tab-item ${activeTab() === 'positions' ? 'active' : ''}`} onClick={() => setActiveTab('positions')}>
+          Positions
+        </button>
+      </div>
       
-      <WalletAssetList assets={aggregatedAssets()} />
+      <div style={{"flex": "1", "min-height": "0", "position": "relative"}}>
+        <Show when={activeTab() === 'assets'}>
+          <WalletAssetList 
+            assets={aggregatedAssets()}
+            onSend={handleOpenSend}
+            onReceive={handleOpenReceive}
+          />
+        </Show>
+        <Show when={activeTab() === 'positions'}>
+          <WalletPositionsList 
+            positions={brokerState.positions}
+            onRefetch={refetchPositions}
+          />
+        </Show>
+      </div>
 
       <Show when={isReceiveModalOpen()}>
         <ReceiveModal 
@@ -115,6 +148,7 @@ const WalletPage: Component = () => {
         <SendModal
           isOpen={isSendModalOpen()}
           onClose={() => setSendModalOpen(false)}
+          initialAsset={selectedAsset()}
         />
       </Show>
     </div>

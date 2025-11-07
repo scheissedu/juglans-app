@@ -1,5 +1,8 @@
+// packages/juglans-app/src/components/chat/cards/TradeSuggestionCard.tsx
+
 import { Component, createMemo, createEffect, onCleanup, For, createSignal, Show } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
+// --- 核心修正 1：从 @klinecharts/core 的导入中移除 KLineChartPro ---
 import { ActionType } from '@klinecharts/core';
 import TradeConfirmModal from '../../modals/TradeConfirmModal';
 import EditableValue from '../EditableValue';
@@ -9,7 +12,9 @@ import {
   OrderSide, 
   OrderType, 
   ChartPro,
-  Switch
+  Switch,
+  // --- 核心修正 2：将 KLineChartPro 添加到 @klinecharts/pro 的导入中 ---
+  KLineChartPro 
 } from '@klinecharts/pro';
 import { useAppContext } from '../../../context/AppContext';
 import { useBrokerState } from '@klinecharts/pro';
@@ -201,7 +206,12 @@ const TradeSuggestionCard: Component<TradeSuggestionCardProps> = (props) => {
     };
   });
 
-  const currentTheme = createMemo(() => (props.chartPro?.getTheme() as 'light' | 'dark') ?? 'dark');
+  const currentTheme = createMemo(() => {
+    if (appState.chartMode === 'pro' && props.chartPro instanceof KLineChartPro) {
+      return (props.chartPro.getTheme() as 'light' | 'dark') ?? 'dark';
+    }
+    return 'dark';
+  });
 
   createEffect(() => {
     const chart = props.chartPro?.getChart();

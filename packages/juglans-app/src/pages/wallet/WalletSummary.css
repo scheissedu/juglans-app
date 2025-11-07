@@ -1,0 +1,49 @@
+.wallet-summary-container {
+  padding: 24px;
+}
+
+.summary-info {
+  /* text-align: center; */ /* Align left instead */
+}
+
+.summary-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  color: var(--light-gray);
+  margin-bottom: 8px;
+}
+
+.currency-selector {
+  cursor: pointer;
+}
+
+.summary-balance {
+  font-size: 32px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.summary-change {
+  font-size: 16px;
+  margin-top: 8px;
+}
+
+.summary-change.up { color: #2DC08E; }
+.summary-change.down { color: #F92855; }
+
+.summary-chart {
+  height: 120px;
+  margin-top: 24px;
+}
+
+/* Override klinecharts-light default styles */
+.summary-chart .klinecharts-light-header,
+.summary-chart .klinecharts-light-periods {
+  display: none;
+}
+.summary-chart .klinecharts-light {
+  padding: 0;
+  background-color: transparent;
+}

@@ -1,3 +1,4 @@
+// packages/juglans-app/src/components/modals/CustomModal.tsx
 import { Component, ParentProps, Show } from 'solid-js';
 import { Portal } from 'solid-js/web';
 import './CustomModal.css';
@@ -6,6 +7,7 @@ interface CustomModalProps extends ParentProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
+  class?: string; // 确保 class 在 props 类型中
 }
 
 const CustomModal: Component<CustomModalProps> = (props) => {
@@ -13,7 +15,8 @@ const CustomModal: Component<CustomModalProps> = (props) => {
     <Show when={props.isOpen}>
       <Portal>
         <div class="custom-modal-overlay" onClick={props.onClose} />
-        <div class="custom-modal-content">
+        {/* --- 核心修正：将 props.class 应用到这里 --- */}
+        <div class={`custom-modal-content ${props.class || ''}`}>
           <div class="custom-modal-header">
             <h2 class="custom-modal-title">{props.title}</h2>
             <button class="custom-modal-close-btn" onClick={props.onClose}>

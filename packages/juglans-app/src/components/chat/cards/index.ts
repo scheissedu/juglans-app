@@ -1,16 +1,11 @@
-// packages/juglans-app/src/components/chat/cards/index.ts
-
 import KLineDataCard from './KLineDataCard';
 import PositionCard from './PositionCard';
 import TradeSuggestionCard from './TradeSuggestionCard';
-import { type TradeSuggestion } from './TradeSuggestionCard';
+import BalanceCard from './BalanceCard'; // Import the new card
 
 export {
   KLineDataCard,
   PositionCard,
-  TradeSuggestionCard
-};
-
-export type {
-  TradeSuggestion
+  TradeSuggestionCard,
+  BalanceCard // Export the new card
 };

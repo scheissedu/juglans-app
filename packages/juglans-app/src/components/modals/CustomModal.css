@@ -1,3 +1,4 @@
+/* packages/juglans-app/src/components/modals/CustomModal.css */
 .custom-modal-overlay {
   position: fixed;
   top: 0;
@@ -21,6 +22,12 @@
   z-index: 1000;
   width: 90%;
   max-width: 420px;
+  
+  /* --- 核心修改：让模态框内容成为 Flex 容器，并设置高度 --- */
+  display: flex;
+  flex-direction: column;
+  height: 80vh; /* 设置一个最大高度，例如视口高度的80% */
+  max-height: 600px; /* 同时设置一个像素最大高度 */
 }
 
 .custom-modal-header {
@@ -29,6 +36,7 @@
   align-items: center;
   padding: 16px 24px;
   border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0; /* --- 核心修改：确保头部不会被压缩 --- */
 }
 
 .custom-modal-title {
@@ -58,4 +66,10 @@
 
 .custom-modal-body {
   padding: 24px;
+  
+  /* --- 核心修改：让 body 部分占据剩余空间 --- */
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto; /* 如果内容溢出，则显示滚动条 */
 }

@@ -1,0 +1,142 @@
+/* packages/juglans-app/src/pages/ProfilePage.css */
+
+/* --- 移动端优先的基础样式 --- */
+.profile-page-wrapper {
+  width: 100%;
+  padding: 24px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  height: 100%;
+}
+.profile-content-container {
+  max-width: 960px;
+  margin: 0 auto;
+}
+.profile-page-title {
+  font-size: 24px;
+  font-weight: 600;
+  margin: 0 0 32px 0;
+}
+.profile-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+}
+.avatar-section {
+  flex-shrink: 0;
+  position: relative;
+  text-align: center;
+}
+.avatar-placeholder {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background-color: var(--card-bg); /* Use card bg for contrast */
+  border: 2px solid var(--border-color);
+}
+.edit-avatar-btn {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: #333;
+  border: 2px solid var(--dark-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #fff;
+  font-size: 14px;
+}
+.details-section {
+  width: 100%;
+  flex-grow: 1;
+}
+.profile-group {
+  margin-bottom: 40px;
+}
+.group-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 20px 0;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+.profile-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+.profile-list-item:last-child {
+  border-bottom: none;
+}
+.profile-list-item .label {
+  color: var(--light-gray);
+  font-size: 16px;
+}
+.value-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.value-container .value {
+  color: #fff;
+  font-size: 16px;
+}
+.action-text-btn {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  color: var(--light-gray);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+.copy-btn {
+  background: none;
+  border: none;
+  color: var(--light-gray);
+  cursor: pointer;
+  font-size: 18px;
+}
+.alert-icon, .alert-text {
+  color: #ffc107;
+  font-size: 14px;
+}
+
+/* --- 宽屏媒体查询 --- */
+@media (min-width: 768px) {
+  .profile-page-wrapper {
+    padding: 40px;
+  }
+  .profile-page-title {
+    font-size: 28px;
+    margin-bottom: 40px;
+  }
+  .profile-body {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 80px;
+  }
+  .avatar-placeholder {
+    width: 120px;
+    height: 120px;
+  }
+  .edit-avatar-btn {
+    width: 32px;
+    height: 32px;
+  }
+  .group-title {
+    font-size: 20px;
+  }
+  .profile-list-item {
+    padding: 20px 0;
+  }
+  .action-text-btn {
+    padding: 6px 16px;
+  }
+}
