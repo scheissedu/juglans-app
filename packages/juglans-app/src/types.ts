@@ -1,11 +1,31 @@
 // packages/juglans-app/src/types.ts
 
-// 定义一个标准化的实时行情数据结构
 export interface TickerData {
-  symbol: string;      // 交易对代码, e.g., 'BTC-USDT'
-  lastPrice: number;   // 最新价格
-  priceChange: number; // 24小时价格变化
-  priceChangePercent: number; // 24小时价格变化百分比
-  volume: number;      // 24小时成交量
-  turnover: number;    // 24小时成交额
+  symbol: string;
+  lastPrice: number;
+  priceChange: number;
+  priceChangePercent: number;
+  volume: number;
+  turnover: number;
+}
+
+export interface NewsArticle {
+  title: string;
+  link: string;
+  pubDate: string;
+  creator: string;
+  snippet: string;
+  image?: string;
+  
+  tickers?: { symbol: string; changePercent: number }[];
+
+  // 保留旧字段为可选
+  category?: string;
+  datetime?: number;
+  headline?: string;
+  id?: number;
+  related?: string;
+  source?: string;
+  summary?: string;
+  url?: string;
 }

@@ -15,14 +15,11 @@ interface MockBrokerState {
 }
 
 export class MockBrokerAPI implements BrokerAPI {
-  // --- 核心修改 1: 添加一个私有成员变量来存储 localStorage 的 key ---
   private _localStorageKey: string;
-  
   private _callbacks: BrokerCallbacks | null = null;
   private _state: MockBrokerState;
   private _lastPrices: Map<string, number> = new Map();
 
-  // --- 核心修改 2: 添加构造函数来接收动态的 storageKey ---
   constructor(storageKey: string) {
     this._localStorageKey = storageKey;
     this._state = this._loadState();
@@ -32,19 +29,17 @@ export class MockBrokerAPI implements BrokerAPI {
   private _loadState(): MockBrokerState {
     const defaultState = this._getDefaultState();
     try {
-      // --- 核心修改 3: 使用动态的 key 从 localStorage 加载数据 ---
       const savedStateString = localStorage.getItem(this._localStorageKey);
       if (savedStateString) {
         console.log(`[MockBroker] Loaded state from localStorage using key: ${this._localStorageKey}`);
         const savedState = JSON.parse(savedStateString);
-        // Safely merge saved state with default state to handle new fields
         return {
           ...defaultState,
           ...savedState,
           accountInfo: {
             ...defaultState.accountInfo,
             ...(savedState.accountInfo || {}),
-            balances: { // Ensure balances object exists
+            balances: { 
                 ...defaultState.accountInfo.balances,
                 ...(savedState.accountInfo?.balances || {}),
             }
@@ -59,7 +54,6 @@ export class MockBrokerAPI implements BrokerAPI {
 
   private _saveState() {
     try {
-      // --- 核心修改 4: 使用动态的 key 保存数据到 localStorage ---
       localStorage.setItem(this._localStorageKey, JSON.stringify(this._state));
     } catch (e) {
       console.error("[MockBroker] Failed to save state to localStorage", e);
@@ -82,17 +76,18 @@ export class MockBrokerAPI implements BrokerAPI {
     };
   }
   
-  // 其余所有方法保持不变...
   private _recalculateAccountMetrics() {
     const accountInfo = this._state.accountInfo;
     
     let totalSpotBalance = 0;
+    const mockPrices: Record<string, number> = { 'BTC': 65000, 'ETH': 3500, 'AAPL': 170.50, 'NVDA': 950.00 };
+
     for (const symbol in accountInfo.balances) {
         const balance = accountInfo.balances[symbol];
         if (symbol === 'USDT' || symbol === 'USD') {
             totalSpotBalance += balance.total;
         } else {
-            const price = this._lastPrices.get(`${symbol}-USDT`) ?? 0;
+            const price = this._lastPrices.get(`${symbol}-USDT`) ?? mockPrices[symbol.toUpperCase()] ?? 0;
             totalSpotBalance += balance.total * price;
         }
     }
@@ -114,7 +109,8 @@ export class MockBrokerAPI implements BrokerAPI {
     accountInfo.orderMargin = 0; // Simplified for now
     accountInfo.availableFunds = accountInfo.equity - accountInfo.margin - accountInfo.orderMargin;
 
-    this._callbacks?.onAccountInfoUpdate(this._state.accountInfo);
+    // --- 核心修复 1: 发送 accountInfo 的一个新副本以触发响应式更新 ---
+    this._callbacks?.onAccountInfoUpdate({ ...this._state.accountInfo });
   }
   
   updatePrice(symbol: string, price: number) {
@@ -122,6 +118,7 @@ export class MockBrokerAPI implements BrokerAPI {
     let positionsUpdated = false;
     this._state.positions.forEach(pos => {
       if (pos.symbol === symbol) {
+        // --- 核心修复 2: 发送 position 的一个新副本 ---
         this._callbacks?.onPositionUpdate({ ...pos, unrealizedPnl: (price - pos.avgPrice) * pos.qty * (pos.side === 'long' ? 1 : -1) });
         positionsUpdated = true;
       }
@@ -137,9 +134,10 @@ export class MockBrokerAPI implements BrokerAPI {
   disconnect() { console.log('[MockBroker] Disconnected.'); }
   subscribe(callbacks: BrokerCallbacks) { 
     this._callbacks = callbacks;
-    this._callbacks.onAccountInfoUpdate(this._state.accountInfo);
-    this._state.positions.forEach(p => this._callbacks?.onPositionUpdate(p));
-    this._state.orders.forEach(o => this._callbacks?.onOrderUpdate(o));
+    // --- 核心修复 3: 初始加载时也发送副本 ---
+    this._callbacks.onAccountInfoUpdate({ ...this._state.accountInfo });
+    this._state.positions.forEach(p => this._callbacks?.onPositionUpdate({ ...p }));
+    this._state.orders.forEach(o => this._callbacks?.onOrderUpdate({ ...o }));
   }
   unsubscribe() { this._callbacks = null; }
 
@@ -167,7 +165,8 @@ export class MockBrokerAPI implements BrokerAPI {
     
     console.log(`[MockBroker] Deposited ${amount} ${asset}. New balance:`, balance);
     this._recalculateAccountMetrics();
-    this._callbacks?.onAccountInfoUpdate(this._state.accountInfo);
+    // --- 核心修复 4: 移除此处的冗余回调，仅依赖 _recalculateAccountMetrics 中的回调 ---
+    // this._callbacks?.onAccountInfoUpdate({ ...this._state.accountInfo });
     this._saveState();
   }
 
@@ -183,7 +182,8 @@ export class MockBrokerAPI implements BrokerAPI {
     
     console.log(`[MockBroker] Withdrew ${amount} ${asset}. New balance:`, balance);
     this._recalculateAccountMetrics();
-    this._callbacks?.onAccountInfoUpdate(this._state.accountInfo);
+    // --- 核心修复 5: 移除此处的冗余回调 ---
+    // this._callbacks?.onAccountInfoUpdate({ ...this._state.accountInfo });
     this._saveState();
   }
 
@@ -199,7 +199,7 @@ export class MockBrokerAPI implements BrokerAPI {
       price: orderParams.price ?? this._lastPrices.get(orderParams.symbol) ?? 0
     };
     this._state.orders.unshift(newOrder);
-    this._callbacks?.onOrderUpdate(newOrder);
+    this._callbacks?.onOrderUpdate({ ...newOrder });
 
     setTimeout(() => {
       const fillPrice = newOrder.type === 'market' ? (this._lastPrices.get(newOrder.symbol) ?? 0) : newOrder.price;
@@ -219,7 +219,7 @@ export class MockBrokerAPI implements BrokerAPI {
         timestamp: Date.now(), fee: newOrder.qty * 0.001 * fillPrice,
       };
       this._state.executions.unshift(execution);
-      this._callbacks?.onExecution(execution);
+      this._callbacks?.onExecution({ ...execution });
 
       const posSide = newOrder.side === OrderSide.Buy ? PositionSide.Long : PositionSide.Short;
       const existingPosition = this._state.positions.find(p => p.symbol === newOrder.symbol && p.side === posSide);
@@ -228,7 +228,7 @@ export class MockBrokerAPI implements BrokerAPI {
         const totalQty = existingPosition.qty + newOrder.qty;
         existingPosition.avgPrice = ((existingPosition.avgPrice * existingPosition.qty) + (fillPrice * newOrder.qty)) / totalQty;
         existingPosition.qty = totalQty;
-        this._callbacks?.onPositionUpdate(existingPosition);
+        this._callbacks?.onPositionUpdate({ ...existingPosition });
       } else {
         const newPosition: Position = {
           id: `pos_${this._state.nextPositionId++}`, symbol: newOrder.symbol,
@@ -237,7 +237,7 @@ export class MockBrokerAPI implements BrokerAPI {
           leverage: (orderParams as any).leverage ?? 10
         };
         this._state.positions.unshift(newPosition);
-        this._callbacks?.onPositionUpdate(newPosition);
+        this._callbacks?.onPositionUpdate({ ...newPosition });
       }
       this._recalculateAccountMetrics();
       this._saveState();

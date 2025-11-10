@@ -1,9 +1,9 @@
-import { Component, createSignal, onMount, onCleanup } from 'solid-js';
+// packages/juglans-app/src/pages/MarketPage.tsx
+import { Component, createSignal, onMount, onCleanup, createMemo } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
 import type { SymbolInfo } from '@klinecharts/pro';
 import UnifiedDatafeed from '../api/datafeed/UnifiedDatafeed';
 import { createStore } from 'solid-js/store';
-
 import './MarketPage.css';
 import AssetList from './market/AssetList';
 import DiscoverTags from './market/DiscoverTags';
@@ -11,58 +11,80 @@ import type { DiscoverTag } from './market/DiscoverTags';
 import { TickerData } from '../../types';
 
 const datafeed = new UnifiedDatafeed();
-const POLLING_INTERVAL = 3000;
+const POLLING_INTERVAL = 5000;
 
-const discoverTags: DiscoverTag[] = [
-  { icon: '🚀', label: 'Altcoins', searchTerm: 'coin' },
-  { icon: '📈', label: 'Top Movers', searchTerm: 'BTC' },
-  { icon: '💎', label: 'DeFi', searchTerm: 'UNI' },
-  { icon: '🎮', label: 'Gaming', searchTerm: 'SAND' },
-  { icon: '🖼️', label: 'NFTs', searchTerm: 'APE' },
-  { icon: '💡', label: 'Tech Stocks', searchTerm: 'AAPL' },
-  { icon: '⚡️', label: 'Energy', searchTerm: 'TSLA' },
+const marketTags: DiscoverTag[] = [
+  { label: 'Crypto', searchTerm: 'crypto' },
+  { label: 'Stocks', searchTerm: 'stocks' },
 ];
 
 const MarketPage: Component = () => {
   const navigate = useNavigate();
-  const [symbols, setSymbols] = createSignal<SymbolInfo[]>([]);
+  
+  const [activeTag, setActiveTag] = createSignal<MarketTag>('crypto');
+  
+  const [cryptoSymbols, setCryptoSymbols] = createSignal<SymbolInfo[]>([]);
+  const [stockSymbols, setStockSymbols] = createSignal<SymbolInfo[]>([]);
+  
   const [loading, setLoading] = createSignal(true);
+  
   const [tickers, setTickers] = createStore<Record<string, TickerData>>({});
 
   let pollingIntervalId: number;
 
-  const fetchTickers = async () => {
-    const tickerList = await datafeed.getOkxTickers();
-    const tickersMap: Record<string, TickerData> = {};
-    for (const ticker of tickerList) {
-        tickersMap[ticker.symbol] = ticker;
+  const activeSymbols = createMemo(() => {
+    return activeTag() === 'crypto' ? cryptoSymbols() : stockSymbols();
+  });
+
+  const fetchCryptoTickers = async () => {
+    if (activeTag() === 'crypto') {
+      try {
+        const tickerList = await datafeed.getOkxTickers();
+        const tickersMap: Record<string, TickerData> = {};
+        for (const ticker of tickerList) {
+            tickersMap[ticker.symbol] = ticker;
+        }
+        setTickers(tickersMap);
+      } catch (error) {
+        console.error("Failed to fetch tickers:", error);
+      }
     }
-    setTickers(tickersMap);
   };
 
   onMount(() => {
     setLoading(true);
-    new Promise<SymbolInfo[]>((resolve) => {
-      datafeed.searchSymbols('USDT', (result) => resolve(result));
-    }).then(allSymbols => {
-      const okxSpotSymbols = allSymbols
-        .filter(s => s.exchange === 'OKX' && s.market === 'spot' && s.ticker.endsWith('-USDT'))
-        .slice(0, 100);
+    
+    // 同时请求加密货币和股票的初始数据
+    Promise.all([
+      new Promise<SymbolInfo[]>((resolve) => {
+        datafeed.searchSymbols('USDT', 'crypto', (symbols) => {
+          const topCryptos = symbols
+            .filter(s => s.exchange === 'OKX' && s.market === 'spot')
+            .slice(0, 100); // 加载 100 个作为初始列表
+          resolve(topCryptos);
+        });
+      }),
+      new Promise<SymbolInfo[]>((resolve) => {
+        datafeed.searchSymbols('a', 'stocks', (symbols) => {
+          const topStocks = ['AAPL', 'GOOG', 'TSLA', 'MSFT', 'AMZN', 'NVDA', 'META'];
+          const filtered = symbols.filter(s => topStocks.includes(s.ticker));
+          resolve(filtered);
+        });
+      })
+    ]).then(([cryptos, stocks]) => {
+      setCryptoSymbols(cryptos);
+      setStockSymbols(stocks);
       
-      setSymbols(okxSpotSymbols);
-      
-      fetchTickers().finally(() => {
+      fetchCryptoTickers().finally(() => {
         setLoading(false);
       });
 
-      pollingIntervalId = setInterval(fetchTickers, POLLING_INTERVAL);
+      pollingIntervalId = setInterval(fetchCryptoTickers, POLLING_INTERVAL);
     });
   });
 
   onCleanup(() => {
-    if (pollingIntervalId) {
-      clearInterval(pollingIntervalId);
-    }
+    clearInterval(pollingIntervalId);
   });
 
   const handleItemClick = (symbol: SymbolInfo) => {
@@ -71,23 +93,17 @@ const MarketPage: Component = () => {
     }
   };
 
-  const handleTagClick = (term: string) => {
-    console.log("Tag clicked, search term:", term);
-    // Future filtering logic can be implemented here
-  };
-
   return (
     <div class="market-page-container">
       <DiscoverTags 
-        tags={discoverTags} 
-        onTagClick={handleTagClick}
+        tags={marketTags} 
+        activeTag={activeTag()}
+        onTagClick={(tag) => setActiveTag(tag as MarketTag)}
       />
-      
       <div class="asset-list-divider" />
-
       <AssetList
-        symbols={symbols()}
-        tickers={tickers}
+        symbols={activeSymbols()}
+        tickers={activeTag() === 'crypto' ? tickers : {}}
         loading={loading()}
         onItemClick={handleItemClick}
       />

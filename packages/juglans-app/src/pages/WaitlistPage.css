@@ -1,0 +1,80 @@
+/* packages/juglans-app/src/pages/WaitlistPage.css */
+
+.token-prompt {
+  width: 100%;
+}
+
+.email-display {
+  color: var(--light-gray);
+  font-size: 16px;
+  margin-top: -8px;
+  margin-bottom: 32px;
+}
+
+.waitlist-stats {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-bottom: 32px;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--primary-highlight);
+  line-height: 1.1;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: var(--light-gray);
+}
+
+.invite-section {
+  width: 100%;
+}
+
+.invite-link-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 6px;
+  position: static; 
+}
+
+.invite-link-wrapper .join-input {
+  flex-grow: 1;
+  background-color: transparent;
+  border: none;
+  height: auto;
+  padding: 10px;
+  color: #fff;
+  font-size: 16px;
+}
+.invite-link-wrapper .join-input:focus {
+  outline: none;
+}
+
+.copy-link-btn {
+  position: static;
+  background-color: var(--primary-highlight);
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 24px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.2s;
+}
+
+.copy-link-btn:hover {
+  opacity: 0.9;
+}

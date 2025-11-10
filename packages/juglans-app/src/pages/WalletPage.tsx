@@ -1,6 +1,6 @@
-import { Component, onMount, onCleanup, createMemo, createSignal, Show } from 'solid-js';
-import { useAppContext, ChatExtension } from '../context/AppContext';
-import { useBrokerState } from '@klinecharts/pro';
+// packages/juglans-app/src/pages/WalletPage.tsx
+import { Component, onMount, onCleanup, createMemo, createSignal, Show, createEffect } from 'solid-js';
+import { useAppContext, ChatExtension, AppContextState } from '../context/AppContext';
 import { produce } from 'solid-js/store';
 import { useEditor } from '@/context/EditorContext';
 import { createWalletChatExtension } from '@/components/chat/extensions/wallet';
@@ -19,7 +19,6 @@ import './wallet/Wallet.css';
 
 const WalletPage: Component = () => {
   const [state, actions] = useAppContext();
-  const [brokerState, setBrokerState] = useBrokerState();
   const { editor } = useEditor();
   
   const [activeTab, setActiveTab] = createSignal<'assets' | 'positions'>('assets');
@@ -28,21 +27,38 @@ const WalletPage: Component = () => {
   const [selectedAsset, setSelectedAsset] = createSignal('USDT');
 
   const myWalletAddress = "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B";
+  
+  createEffect(() => {
+    console.log('[WalletPage] state.accountInfo from context has changed:', state.accountInfo);
+  });
 
   const aggregatedAssets = createMemo((): AggregatedAsset[] => {
-    const balances = brokerState.accountInfo?.balances;
+    const balances = state.accountInfo?.balances;
+    console.log('[WalletPage] createMemo for aggregatedAssets is re-running. Balances:', balances);
     if (!balances) return [];
+
+    const mockPrices: Record<string, number> = { 
+      'BTC': 65000, 
+      'ETH': 3500,
+      'AAPL': 170.50,
+      'NVDA': 950.00
+    };
+    
+    // --- 核心修复：使用更可靠的逻辑来判断资产类型 ---
+    const knownStocks = new Set(['AAPL', 'NVDA', 'TSLA', 'GOOG']);
 
     return Object.entries(balances)
       .map(([symbol, balance]) => {
+        const assetType = knownStocks.has(symbol.toUpperCase()) ? 'stock' : 'crypto';
+        
         let usdValue = 0;
         if (symbol === 'USDT' || symbol === 'USD') {
             usdValue = balance.total;
         } else {
-            const mockPrices: Record<string, number> = { 'BTC': 65000, 'ETH': 3500 };
-            usdValue = balance.total * (mockPrices[symbol] || 0);
+            usdValue = balance.total * (mockPrices[symbol.toUpperCase()] || 0);
         }
-        return { symbol, balance, usdValue };
+        
+        return { symbol, balance, usdValue, assetType };
       })
       .sort((a, b) => b.usdValue - a.usdValue);
   });
@@ -61,9 +77,7 @@ const WalletPage: Component = () => {
     const brokerApi = state.brokerApi;
     try {
       const positions = await brokerApi.getPositions();
-      setBrokerState('positions', produce(p => {
-        p.splice(0, p.length, ...positions);
-      }));
+      actions.setPositions(() => positions);
     } catch (e) {
       console.error("Failed to refetch positions", e);
     }
@@ -74,7 +88,9 @@ const WalletPage: Component = () => {
       await state.brokerApi.deposit('USDT', 10000);
       await state.brokerApi.deposit('BTC', 0.5);
       await state.brokerApi.deposit('ETH', 10);
-      alert("Mock assets have been deposited!");
+      await state.brokerApi.deposit('AAPL', 50);
+      await state.brokerApi.deposit('NVDA', 10);
+      alert("Mock assets (including stocks) have been deposited!");
     } catch (e: any) {
       alert(`Deposit failed: ${e.message}`);
     }
@@ -84,7 +100,7 @@ const WalletPage: Component = () => {
     console.log('[WalletPage] Mounting and registering wallet chat extension.');
     const walletExtension = createWalletChatExtension(
       [state, actions],
-      brokerState,
+      state,
       mockDeposit
     );
     actions.setChatExtension(walletExtension);
@@ -100,15 +116,13 @@ const WalletPage: Component = () => {
   return (
     <div style={{ "height": "100%", "display": "flex", "flex-direction": "column" }}>
       <div style={{ "overflow-y": "auto", "flex-shrink": "1" }}>
-        <WalletSummary accountInfo={brokerState.accountInfo} />
+        <WalletSummary accountInfo={state.accountInfo} />
         
-        {/*
         <WalletActions 
           onSendClick={() => handleOpenSend('USDT')}
           onReceiveClick={() => handleOpenReceive('USDT')}
           onMockDepositClick={mockDeposit} 
         />
-        */}
       </div>
       
       <div class="wallet-tabs">
@@ -130,7 +144,7 @@ const WalletPage: Component = () => {
         </Show>
         <Show when={activeTab() === 'positions'}>
           <WalletPositionsList 
-            positions={brokerState.positions}
+            positions={state.positions}
             onRefetch={refetchPositions}
           />
         </Show>

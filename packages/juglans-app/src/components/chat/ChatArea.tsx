@@ -1,5 +1,4 @@
 // packages/juglans-app/src/components/chat/ChatArea.tsx
-
 import { Component, createSignal, For, onCleanup, Show, createEffect, onMount, createMemo, ParentProps } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
 import { Portal } from 'solid-js/web';
@@ -11,7 +10,6 @@ import tippy, { type Instance as TippyInstance } from 'tippy.js';
 
 import { QuickSuggestion, useAppContext } from '../../context/AppContext';
 import EditorContext, { useEditor, type EditorContextState } from '../../context/EditorContext';
-import { useBrokerState } from '@klinecharts/pro';
 
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -25,14 +23,18 @@ import MessageRenderer from './MessageRenderer';
 import SuggestionList, { type SuggestionItem } from './SuggestionList';
 import ContextCheckboxes from './ContextCheckboxes';
 import { executeToolCall } from './tools';
-import { KLineDataCard, PositionCard, TradeSuggestionCard, BalanceCard } from './cards';
-import { KLineChartPro, OrderParams } from '@klinecharts/pro';
+import { KLineChartPro, OrderParams, ChartPro } from '@klinecharts/pro';
 import ModelSelector, { Model } from './ModelSelector';
 
+import { BalanceSummaryView } from '@/components/cards-p/BalanceCard';
+import { KLineSummaryView } from '@/components/cards-p/KLineDataCard';
+import { PositionSummaryView } from '@/components/cards-p/PositionCard';
+import { TradeSuggestionDetailView } from '@/components/cards-p/TradeSuggestionCard';
+
 export interface ImageAttachment { type: 'image'; url: string; id: string; }
-export interface KLineAttachment { type: 'kline'; symbol: string; period: string; data: string; id: string; }
-export interface PositionAttachment { type: 'position'; data: string; id: string; }
-export interface BalanceAttachment { type: 'balance'; data: string; id: string; }
+export interface KLineAttachment { type: 'kline'; id: string; data: { symbol: string; period: string; data: any[] } }
+export interface PositionAttachment { type: 'position'; id: string; data: any[] }
+export interface BalanceAttachment { type: 'balance'; id: string; data: Record<string, any> }
 export type Attachment = ImageAttachment | KLineAttachment | PositionAttachment | BalanceAttachment;
 
 export interface TextMessage {
@@ -71,7 +73,6 @@ export const ChatAreaProvider: Component<ParentProps> = (props) => {
 export const ChatArea: Component = () => {
   const { editor, setEditor } = useEditor();
   const [state, actions] = useAppContext();
-  const [brokerState] = useBrokerState();
 
   const [messages, setMessages] = createStore<Message[]>([]);
   const [attachments, setAttachments] = createStore<Attachment[]>([]);
@@ -169,8 +170,10 @@ export const ChatArea: Component = () => {
     const currentAttachments = [...attachments];
 
     if (suggestion) {
-      contentForDisplay = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: suggestion.text }] }] };
-      contentForAPI = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: suggestion.sendText ?? suggestion.text }] }] };
+      const displayText = suggestion.text;
+      const sendText = suggestion.sendText ?? suggestion.text;
+      contentForDisplay = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: displayText }] }] };
+      contentForAPI = { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: sendText }] }] };
       editorInstance.commands.setContent('', true);
     } else {
       if (isInputEmpty() && currentAttachments.length === 0) return;
@@ -211,9 +214,7 @@ export const ChatArea: Component = () => {
       
       const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/api/chat`;
 
-      // --- 核心修正：添加 Authorization Header ---
       if (!state.token) {
-        // 如果 token 不存在，可以选择登出或提示用户
         actions.logout();
         throw new Error("Authentication token is missing. You have been logged out.");
       }
@@ -221,15 +222,13 @@ export const ChatArea: Component = () => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${state.token}`
       };
-      // --- 修正结束 ---
 
       const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: headers, // 使用包含 token 的 headers
+        headers: headers,
         body: JSON.stringify({ history: historyForAPI, context: context, model: selectedModelId() }),
       });
       
-      // 如果收到 401 或 403，意味着 token 失效，自动登出
       if (response.status === 401 || response.status === 403) {
         actions.logout();
         throw new Error("Your session has expired. Please log in again.");
@@ -239,7 +238,7 @@ export const ChatArea: Component = () => {
         throw new Error(`API error! status: ${response.status}`);
       }
       
-      setMessages(produce(msgs => { msgs.pop(); })); // 移除 'thinking' 消息
+      setMessages(produce(msgs => { msgs.pop(); }));
       
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
@@ -248,11 +247,13 @@ export const ChatArea: Component = () => {
         if (aiResponse.type === 'tool_call') {
           executeToolCall(aiResponse, [state, actions], setMessages);
         } else if (aiResponse.type === 'card_response') {
+          // --- 核心修复：添加处理 my_positions 卡片的逻辑 ---
           switch (aiResponse.card_type) {
-            case 'my_positions':
+            case 'my_positions': {
               const newAttachment: PositionAttachment = {
-                type: 'position', id: `pos_${Date.now()}`,
-                data: JSON.stringify(aiResponse.card_data),
+                type: 'position', 
+                id: `pos_${Date.now()}`,
+                data: aiResponse.card_data, // data is the array of positions
               };
               const cardMessage: TextMessage = {
                 role: 'assistant', type: 'text',
@@ -261,6 +262,7 @@ export const ChatArea: Component = () => {
               };
               setMessages(produce(msgs => { msgs.push(cardMessage); }));
               break;
+            }
             default:
               console.warn('Unknown card type received:', aiResponse.card_type);
           }
@@ -397,9 +399,9 @@ export const ChatArea: Component = () => {
                           <For each={(message as TextMessage).attachments}>{
                             att => {
                               if (att.type === 'image') return <img src={(att as ImageAttachment).url} class="message-attachment-image" alt="attachment" />;
-                              if (att.type === 'kline') return <KLineDataCard node={{ attrs: att as any }} />;
-                              if (att.type === 'position') return <PositionCard node={{ attrs: att as any }} />;
-                              if (att.type === 'balance') return <BalanceCard node={{ attrs: att as any }} />;
+                              if (att.type === 'kline') return <KLineSummaryView node={{ attrs: { type: 'kline', data: att.data } }} />;
+                              if (att.type === 'position') return <PositionSummaryView node={{ attrs: { type: 'position', data: att.data } }} />;
+                              if (att.type === 'balance') return <BalanceSummaryView node={{ attrs: { type: 'balance', data: att.data } }} />;
                               return null;
                             }
                           }</For>
@@ -410,10 +412,8 @@ export const ChatArea: Component = () => {
                       </div>
                     }
                   >
-                    <TradeSuggestionCard 
-                      suggestion={(message as ToolCallMessage).tool_params}
-                      chartPro={state.chart as ChartPro}
-                      onPlaceOrder={handlePlaceOrder}
+                    <TradeSuggestionDetailView 
+                      node={{ attrs: { type: 'tradeSuggestion', data: (message as ToolCallMessage).tool_params } }}
                     />
                   </Show>
                 }
@@ -464,9 +464,9 @@ export const ChatArea: Component = () => {
                 {(att) => (
                   <div class="attachment-preview">
                     <Show when={att.type === 'image'}><img src={(att as ImageAttachment).url} alt="preview"/></Show>
-                    <Show when={att.type === 'kline'}><KLineDataCard node={{ attrs: att as any }} deleteNode={() => removeAttachment(att.id)} /></Show>
-                    <Show when={att.type === 'position'}><PositionCard node={{ attrs: att as any }} deleteNode={() => removeAttachment(att.id)} /></Show>
-                    <Show when={att.type === 'balance'}><BalanceCard node={{ attrs: att as any }} deleteNode={() => removeAttachment(att.id)} /></Show>
+                    <Show when={att.type === 'kline'}><KLineSummaryView node={{ attrs: { type: 'kline', data: (att as KLineAttachment).data } }} deleteNode={() => removeAttachment(att.id)} /></Show>
+                    <Show when={att.type === 'position'}><PositionSummaryView node={{ attrs: { type: 'position', data: (att as PositionAttachment).data } }} deleteNode={() => removeAttachment(att.id)} /></Show>
+                    <Show when={att.type === 'balance'}><BalanceSummaryView node={{ attrs: { type: 'balance', data: (att as BalanceAttachment).data } }} deleteNode={() => removeAttachment(att.id)} /></Show>
                   </div>
                 )}
               </For>

@@ -1,7 +1,8 @@
+// packages/juglans-app/src/context/AppContext.tsx
 import { createContext, useContext, Component, ParentProps, onMount } from 'solid-js';
 import { createStore } from 'solid-js/store';
 import { useNavigate } from '@solidjs/router';
-import type { ChartPro, BrokerAPI, SymbolInfo, Period } from '@klinecharts/pro';
+import type { ChartPro, BrokerAPI, SymbolInfo, Period, AccountInfo, Position, Order } from '@klinecharts/pro';
 import type { ChartProLight } from '@klinecharts/light';
 import { MockBrokerAPI } from '../api/MockBrokerAPI';
 import type { SuggestionItem } from '../components/chat/SuggestionList';
@@ -25,7 +26,7 @@ export interface ChatExtension {
 
 export interface AppContextState {
   chart: AnyChart | null;
-  brokerApi: BrokerAPI;
+  brokerApi: BrokerAPI; // Will be initialized as null but guaranteed to exist after loading
   symbol: SymbolInfo;
   period: Period;
   chartMode: 'pro' | 'light';
@@ -34,6 +35,11 @@ export interface AppContextState {
   user: { id: string; username: string } | null;
   token: string | null;
   authLoading: boolean;
+
+  // --- 核心修改 1: 将 BrokerState 合并进来 ---
+  accountInfo: AccountInfo | null;
+  positions: Position[];
+  orders: Order[];
 }
 
 export interface AppContextActions {
@@ -46,6 +52,11 @@ export interface AppContextActions {
   navigate: ReturnType<typeof useNavigate>;
   setUser: (user: { id: string; username: string } | null, token: string | null) => void;
   logout: () => void;
+  
+  // --- 核心修改 2: 添加用于更新 Broker 状态的 actions ---
+  setAccountInfo: (info: AccountInfo | null) => void;
+  setPositions: (producer: (prev: Position[]) => Position[] | void) => void;
+  setOrders: (producer: (prev: Order[]) => Order[] | void) => void;
 }
 
 type AppContextValue = [state: AppContextState, actions: AppContextActions];
@@ -55,7 +66,7 @@ const AppContext = createContext<AppContextValue>();
 export const AppContextProvider: Component<ParentProps> = (props) => {
   const [state, setState] = createStore<AppContextState>({
     chart: null,
-    brokerApi: new MockBrokerAPI('default_guest_key'),
+    brokerApi: null as unknown as BrokerAPI,
     symbol: { ticker: 'BTC-USDT' },
     period: { multiplier: 1, timespan: 'hour', text: '1H' },
     chartMode: 'pro',
@@ -64,17 +75,12 @@ export const AppContextProvider: Component<ParentProps> = (props) => {
     user: null,
     token: null,
     authLoading: true,
-  });
 
-  // --- 核心修复：将 reinitializeBroker 提取出来，避免 this 和循环引用问题 ---
-  const reinitializeBroker = (userId: string) => {
-    console.log(`[Auth] Reinitializing BrokerAPI for user: ${userId}`);
-    const userSpecificKey = `klinecharts_pro_mock_broker_state_${userId}`;
-    // 先断开旧连接（如果需要）
-    (state.brokerApi as MockBrokerAPI).disconnect();
-    // 创建并设置新的 BrokerAPI 实例
-    setState('brokerApi', new MockBrokerAPI(userSpecificKey));
-  };
+    // --- 核心修改 3: 初始化合并后的状态 ---
+    accountInfo: null,
+    positions: [],
+    orders: [],
+  });
 
   const actions: AppContextActions = {
     setChart: (chart) => setState('chart', chart),
@@ -91,38 +97,48 @@ export const AppContextProvider: Component<ParentProps> = (props) => {
       if (user && token) {
         localStorage.setItem('authToken', token);
         localStorage.setItem('user', JSON.stringify(user));
-        setState({ isAuthenticated: true, user, token });
-        reinitializeBroker(user.id);
+        window.location.href = '/';
       }
     },
-
     logout() {
       localStorage.removeItem('authToken');
       localStorage.removeItem('user');
-      setState({ isAuthenticated: false, user: null, token: null });
-      reinitializeBroker('default_guest_key');
-      if (actions.navigate) {
-        actions.navigate('/login');
-      }
+      window.location.href = '/login';
     },
+
+    // --- 核心修改 4: 实现新的 actions ---
+    setAccountInfo: (info) => setState('accountInfo', info),
+    setPositions: (producer) => setState('positions', producer),
+    setOrders: (producer) => setState('orders', producer),
   };
 
   onMount(() => {
-    console.log("[AppContext] onMount: Initializing authentication state.");
+    console.log("[AppContext] onMount: Initializing authentication and BrokerAPI.");
     const token = localStorage.getItem('authToken');
     const userStr = localStorage.getItem('user');
+    let user = null;
+    let finalBrokerApi: BrokerAPI;
+
     if (token && userStr) {
       try {
-        const user = JSON.parse(userStr);
-        actions.setUser(user, token);
+        user = JSON.parse(userStr);
+        const userSpecificKey = `klinecharts_pro_mock_broker_state_${user.id}`;
+        finalBrokerApi = new MockBrokerAPI(userSpecificKey);
       } catch (e) {
-        console.error("[AppContext] Failed to parse user from localStorage.", e);
-        actions.logout();
+        finalBrokerApi = new MockBrokerAPI('default_guest_key');
       }
+    } else {
+      finalBrokerApi = new MockBrokerAPI('default_guest_key');
     }
-    // 无论如何，最后都要结束加载状态
-    setState('authLoading', false);
-    console.log("[AppContext] onMount: Authentication check finished.");
+    
+    setState({
+      brokerApi: finalBrokerApi,
+      isAuthenticated: !!user,
+      user: user,
+      token: token,
+      authLoading: false
+    });
+    console.log("[AppContext] onMount: Initialization complete.");
   });
 
   return (

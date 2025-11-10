@@ -1,0 +1,61 @@
+/* packages/juglans-app/src/components/chat/cards/BalanceCard/styles/BalanceModal.css */
+
+.card-details-modal .klinecharts-pro-modal-inner {
+  transition: background-color 0.2s, border-color 0.2s;
+}
+.card-details-modal[data-theme="dark"] .klinecharts-pro-modal-inner {
+  background-color: var(--dark-bg);
+  border: 1px solid var(--chat-border-color);
+}
+.card-details-modal[data-theme="dark"] .title-container,
+.card-details-modal[data-theme="dark"] .close-icon {
+  fill: #f8f8f8;
+  color: #f8f8f8;
+}
+
+.balance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 20px;
+  padding-bottom: 12px;
+}
+
+.balance-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.balance-item .asset-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.balance-item .asset-symbol {
+  font-weight: 500;
+  color: #f8f8f8;
+}
+
+.balance-item .asset-amount {
+  text-align: right;
+  font-family: monospace;
+}
+
+.balance-item .total-balance {
+  font-weight: 600;
+  color: #f8f8f8;
+}
+
+.balance-item .free-balance {
+  font-size: 12px;
+  color: var(--chat-text-second-color);
+}
+
+.empty-balance {
+  text-align: center;
+  padding: 16px 0;
+  color: var(--chat-text-second-color);
+  font-style: italic;
+}

@@ -1,15 +1,16 @@
 // packages/juglans-app/src/pages/wallet/WalletAssetList.tsx
-
 import { Component, For, Show } from 'solid-js';
 import WalletAssetListItem from './WalletAssetListItem';
 import EmptyState from '../../components/common/EmptyState';
 import './Wallet.css';
 import { AssetBalance } from '@klinecharts/pro';
 
+// --- 核心修改: 在接口中添加 assetType ---
 export interface AggregatedAsset {
   symbol: string;
   balance: AssetBalance;
   usdValue: number;
+  assetType: 'crypto' | 'stock';
 }
 
 interface WalletAssetListProps {

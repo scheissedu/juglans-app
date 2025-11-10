@@ -1,11 +1,11 @@
-import { AppContextValue, ChatExtension } from '../../../context/AppContext';
+// packages/juglans-app/src/components/chat/extensions/wallet.ts
+import { AppContextState, AppContextValue, ChatExtension } from '../../../context/AppContext';
 import { SuggestionItem } from '../SuggestionList';
 import type { Editor } from '@tiptap/core';
-import { BrokerState } from '@klinecharts/pro';
 
 export function createWalletChatExtension(
   appContext: AppContextValue,
-  brokerState: BrokerState,
+  appState: AppContextState,
   mockDepositFn: () => Promise<void>
 ): ChatExtension {
   
@@ -15,8 +15,8 @@ export function createWalletChatExtension(
     return {
       page: 'wallet',
       myContext: true,
-      accountInfo: brokerState.accountInfo,
-      positions: brokerState.positions
+      accountInfo: appState.accountInfo,
+      positions: appState.positions
     };
   };
 
@@ -26,20 +26,31 @@ export function createWalletChatExtension(
     { key: 'positions', label: 'My Positions', description: 'List my current open positions.' },
   ];
 
-  const handleCommand = (item: SuggestionItem, editor: Editor | null) => {
+  // --- 核心修复：将函数设为 async 并主动获取数据 ---
+  const handleCommand = async (item: SuggestionItem, editor: Editor | null) => {
+    const dispatchAttachmentEvent = (attachment: any) => {
+      const event = new CustomEvent('add-chat-attachment', { detail: attachment });
+      document.body.dispatchEvent(event);
+    };
+
     switch (item.key) {
       case 'balance': {
-        const balances = brokerState.accountInfo?.balances;
-        if (balances && Object.keys(balances).length > 0) {
-          const newAttachment = {
-            type: 'balance',
-            id: `balance_${Date.now()}`,
-            data: JSON.stringify(balances)
-          };
-          const event = new CustomEvent('add-chat-attachment', { detail: newAttachment });
-          document.body.dispatchEvent(event);
-        } else {
-          actions.sendMessage("I can't find any assets in your wallet.");
+        try {
+          // 主动从 brokerApi 获取最新的账户信息
+          const accountInfo = await state.brokerApi.getAccountInfo();
+          const balances = accountInfo.balances;
+          if (balances && Object.keys(balances).length > 0) {
+            dispatchAttachmentEvent({
+              id: `balance_${Date.now()}`,
+              type: 'balance',
+              data: balances
+            });
+          } else {
+            // 如果获取后仍然没有资产，再通知用户
+            actions.sendMessage("I can't find any assets in your wallet.");
+          }
+        } catch (error) {
+          console.error("Failed to fetch account balance:", error);
         }
         break;
       }
@@ -49,17 +60,18 @@ export function createWalletChatExtension(
         setTimeout(() => editor?.chain().clearContent().run(), 2000);
         break;
       case 'positions': {
-        const positions = brokerState.positions;
-        if (positions && positions.length > 0) {
-            const newAttachment = {
-              type: 'position',
-              id: `pos_${Date.now()}`,
-              data: JSON.stringify(positions)
-            };
-            const event = new CustomEvent('add-chat-attachment', { detail: newAttachment });
-            document.body.dispatchEvent(event);
-        } else {
-          actions.sendMessage("You don't have any open positions right now.");
+        try {
+          // 主动获取最新的持仓信息
+          const positions = await state.brokerApi.getPositions();
+          if (positions && positions.length > 0) {
+              dispatchAttachmentEvent({
+                id: `pos_${Date.now()}`,
+                type: 'position',
+                data: positions
+              });
+          }
+        } catch (error) {
+            console.error("Failed to fetch positions:", error);
         }
         break;
       }

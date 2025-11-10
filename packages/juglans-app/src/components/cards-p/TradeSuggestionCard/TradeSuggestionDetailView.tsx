@@ -1,24 +1,18 @@
-// packages/juglans-app/src/components/chat/cards/TradeSuggestionCard.tsx
-
+// packages/juglans-app/src/components/chat/cards-p/TradeSuggestionCard/TradeSuggestionDetailView.tsx
 import { Component, createMemo, createEffect, onCleanup, For, createSignal, Show } from 'solid-js';
 import { createStore, produce } from 'solid-js/store';
-// --- 核心修正 1：从 @klinecharts/core 的导入中移除 KLineChartPro ---
 import { ActionType } from '@klinecharts/core';
-import TradeConfirmModal from '../../modals/TradeConfirmModal';
+import { CardComponentProps } from '../types';
+import { TradeSuggestionData } from './types';
 import EditableValue from '../EditableValue';
+import TradeConfirmModal from './TradeConfirmModal';
+import { useAppContext } from '@/context/AppContext';
+// --- 核心修改 1: 移除 useBrokerState ---
+// import { useBrokerState } from '@klinecharts/pro';
 import { 
-  TakeProfitTarget, 
-  OrderParams, 
-  OrderSide, 
-  OrderType, 
-  ChartPro,
-  Switch,
-  // --- 核心修正 2：将 KLineChartPro 添加到 @klinecharts/pro 的导入中 ---
-  KLineChartPro 
+  TakeProfitTarget, OrderParams, OrderSide, OrderType, ChartPro, Switch, KLineChartPro
 } from '@klinecharts/pro';
-import { useAppContext } from '../../../context/AppContext';
-import { useBrokerState } from '@klinecharts/pro';
-import './TradeSuggestionCard.css';
+import './styles/TradeSuggestionCard.css';
 
 type SizeUnit = 'BASE' | 'QUOTE';
 type MarginMode = 'ISOLATED' | 'CROSSED';
@@ -41,17 +35,13 @@ interface LocalTradeState {
   reduceOnly: boolean;
 }
 
-interface TradeSuggestionCardProps {
-  suggestion: any;
-  chartPro: ChartPro | null;
-  onPlaceOrder: (order: OrderParams) => Promise<void>;
-}
-
 const ORDER_TYPES: OrderType[] = ['market', 'limit', 'stop'];
 
-const TradeSuggestionCard: Component<TradeSuggestionCardProps> = (props) => {
+const TradeSuggestionDetailView: Component<CardComponentProps<TradeSuggestionData>> = (props) => {
+  // --- 核心修改 2: 只使用 useAppContext ---
   const [appState] = useAppContext();
-  const [brokerState] = useBrokerState();
+  // const [brokerState] = useBrokerState(); // <-- 移除此行
+  
   const [isPreviewing, setIsPreviewing] = createSignal(true);
   const [confirmModalVisible, setConfirmModalVisible] = createSignal(false);
 
@@ -71,23 +61,23 @@ const TradeSuggestionCard: Component<TradeSuggestionCardProps> = (props) => {
   });
 
   createEffect(() => {
-    const suggestion = props.suggestion.trade_suggestion;
+    const suggestion = props.node.attrs.data.trade_suggestion;
     if (!suggestion) return;
     const takeProfitsArray = Array.isArray(suggestion.take_profit) ? suggestion.take_profit : [];
-    const cleanTakeProfits = JSON.parse(JSON.stringify(takeProfitsArray));
+    
     setTrade({
-      productType: props.suggestion.productType ?? 'FUTURES',
+      productType: 'FUTURES',
       status: 'SUGGESTED',
       direction: suggestion.direction === 'LONG' ? 'buy' : 'sell',
       orderType: suggestion.orderType ?? 'market',
-      size: suggestion.quantity,
+      size: suggestion.quantity ?? 0,
       sizeUnit: 'BASE',
-      price: suggestion.price,
-      triggerPrice: suggestion.stopPrice,
+      price: suggestion.entry_price,
+      triggerPrice: undefined, // Assuming AI doesn't provide this yet
       leverage: suggestion.leverage,
       marginMode: 'ISOLATED',
       stopLoss: suggestion.stop_loss,
-      takeProfits: cleanTakeProfits,
+      takeProfits: JSON.parse(JSON.stringify(takeProfitsArray)),
       isAdvancedOpen: false,
       reduceOnly: false,
     });
@@ -96,7 +86,7 @@ const TradeSuggestionCard: Component<TradeSuggestionCardProps> = (props) => {
   const isLong = createMemo(() => trade.direction === 'buy');
 
   const latestPrice = createMemo(() => {
-    const chart = props.chartPro?.getChart();
+    const chart = (appState.chart as ChartPro)?.getChart();
     if (!chart) return 0;
     const dataList = chart.getDataList();
     return dataList[dataList.length - 1]?.close ?? 0;
@@ -105,9 +95,7 @@ const TradeSuggestionCard: Component<TradeSuggestionCardProps> = (props) => {
   const sizeInBaseCurrency = createMemo(() => {
     const price = trade.orderType === 'market' ? latestPrice() : trade.price;
     if (!price || price === 0) return 0;
-    if (trade.sizeUnit === 'BASE') {
-      return trade.size;
-    }
+    if (trade.sizeUnit === 'BASE') return trade.size;
     return trade.size / price;
   });
 
@@ -116,16 +104,15 @@ const TradeSuggestionCard: Component<TradeSuggestionCardProps> = (props) => {
     const entryPrice = trade.orderType === 'market' ? latestPrice() : trade.price;
     if (!entryPrice || entryPrice === 0) return null;
     if (trade.marginMode === 'ISOLATED') {
-      if (isLong()) { return entryPrice * (1 - (1 / trade.leverage)); } 
-      else { return entryPrice * (1 + (1 / trade.leverage)); }
+      return isLong() ? entryPrice * (1 - (1 / trade.leverage)) : entryPrice * (1 + (1 / trade.leverage));
     } else {
-      const accountInfo = brokerState.accountInfo;
-      if (!accountInfo || typeof accountInfo.availableFunds !== 'number') return null;
+      // --- 核心修改 3: 从 appState 读取 accountInfo ---
+      const accountInfo = appState.accountInfo;
+      if (!accountInfo?.availableFunds) return null;
       const positionValue = sizeInBaseCurrency() * entryPrice;
       const initialMargin = positionValue / trade.leverage;
       const priceChange = (accountInfo.availableFunds + initialMargin) / sizeInBaseCurrency();
-      if (isLong()) { return entryPrice - priceChange; } 
-      else { return entryPrice + priceChange; }
+      return isLong() ? entryPrice - priceChange : entryPrice + priceChange;
     }
   });
   
@@ -143,13 +130,11 @@ const TradeSuggestionCard: Component<TradeSuggestionCardProps> = (props) => {
 
   const updateValue = (key: keyof LocalTradeState, value: any, setModified = true) => {
     setTrade(key as any, value);
-    if (setModified) {
-      setTrade('status', 'MODIFIED');
-    }
+    if (setModified) setTrade('status', 'MODIFIED');
   };
 
   const updateTakeProfit = (index: number, field: 'price' | 'portion_pct', value: number) => {
-    setTrade('takeProfits', index, field, value);
+    setTrade('takeProfits', produce(tps => { if(tps[index]) tps[index][field] = value; }));
     setTrade('status', 'MODIFIED');
   };
   
@@ -171,6 +156,7 @@ const TradeSuggestionCard: Component<TradeSuggestionCardProps> = (props) => {
   const handleConfirmOrder = async () => {
     setConfirmModalVisible(false);
     setTrade('status', 'PENDING');
+    if (!appState.brokerApi) return;
     const orderParams: OrderParams = {
       symbol: appState.symbol.ticker,
       side: trade.direction,
@@ -181,10 +167,10 @@ const TradeSuggestionCard: Component<TradeSuggestionCardProps> = (props) => {
       stopLoss: trade.stopLoss,
       takeProfit: trade.takeProfits[0]?.price,
       reduceOnly: trade.reduceOnly,
-      timeInForce: 'GTC', // Hardcoded for now
+      timeInForce: 'GTC',
     };
     try {
-      await props.onPlaceOrder(orderParams);
+      await appState.brokerApi.placeOrder(orderParams);
       setTrade('status', 'SUCCESS');
     } catch (error) {
       console.error("Order placement failed:", error);
@@ -197,7 +183,7 @@ const TradeSuggestionCard: Component<TradeSuggestionCardProps> = (props) => {
     const entry = trade.orderType === 'market' ? latestPrice() : trade.price;
     return {
       symbol: appState.symbol.ticker,
-      direction: trade.direction === 'buy' ? 'LONG' : 'SHORT',
+      direction: isLong() ? 'LONG' : 'SHORT',
       leverage: trade.leverage,
       entry_price: entry,
       stop_loss: trade.stopLoss,
@@ -207,50 +193,28 @@ const TradeSuggestionCard: Component<TradeSuggestionCardProps> = (props) => {
   });
 
   const currentTheme = createMemo(() => {
-    if (appState.chartMode === 'pro' && props.chartPro instanceof KLineChartPro) {
-      return (props.chartPro.getTheme() as 'light' | 'dark') ?? 'dark';
+    if (appState.chart instanceof KLineChartPro) {
+      return (appState.chart.getTheme() as 'light' | 'dark') ?? 'dark';
     }
     return 'dark';
   });
 
   createEffect(() => {
-    const chart = props.chartPro?.getChart();
+    const chart = (appState.chart as ChartPro)?.getChart();
     if (chart && isPreviewing()) {
-      const overlayIdPrefix = `trade_suggestion_${props.suggestion.id || Date.now()}`;
+      const overlayIdPrefix = `trade_suggestion_${props.node.attrs.data.id || Date.now()}`;
       const entry = trade.orderType === 'market' ? latestPrice() : trade.price;
       const overlaysToCreate: any[] = [];
-      if (entry) { overlaysToCreate.push({ name: 'priceLine', id: `${overlayIdPrefix}_entry`, groupId: overlayIdPrefix, lock: false, points: [{ value: entry }], styles: { line: { color: isLong() ? '#2DC08E' : '#F92855' } } }); }
-      if (trade.stopLoss && trade.stopLoss > 0) { overlaysToCreate.push({ name: 'priceLine', id: `${overlayIdPrefix}_sl`, groupId: overlayIdPrefix, lock: false, points: [{ value: trade.stopLoss }], styles: { line: { color: 'orange', style: 'dashed' } } }); }
-      if (Array.isArray(trade.takeProfits)) {
-        trade.takeProfits.forEach((tp, i) => { 
-          if (tp.price > 0) { 
-            overlaysToCreate.push({ name: 'priceLine', id: `${overlayIdPrefix}_tp_${i}`, groupId: overlayIdPrefix, lock: false, points: [{ value: tp.price }], styles: { line: { color: '#BFFF00', style: 'dashed' } } }); 
-          } 
-        });
-      }
+      if (entry) overlaysToCreate.push({ name: 'priceLine', id: `${overlayIdPrefix}_entry`, groupId: overlayIdPrefix, lock: false, points: [{ value: entry }], styles: { line: { color: isLong() ? '#2DC08E' : '#F92855' } } });
+      if (trade.stopLoss && trade.stopLoss > 0) overlaysToCreate.push({ name: 'priceLine', id: `${overlayIdPrefix}_sl`, groupId: overlayIdPrefix, lock: false, points: [{ value: trade.stopLoss }], styles: { line: { color: 'orange', style: 'dashed' } } });
+      trade.takeProfits.forEach((tp, i) => { if (tp.price > 0) overlaysToCreate.push({ name: 'priceLine', id: `${overlayIdPrefix}_tp_${i}`, groupId: overlayIdPrefix, lock: false, points: [{ value: tp.price }], styles: { line: { color: '#BFFF00', style: 'dashed' } } }); });
       const liqPrice = liquidationPrice();
-      if (liqPrice) { overlaysToCreate.push({ name: 'priceLine', id: `${overlayIdPrefix}_liq`, groupId: overlayIdPrefix, lock: true, points: [{ value: liqPrice }], styles: { line: { color: '#FF0000', style: 'dotted' } } }); }
-      if (overlaysToCreate.length > 0) { chart.createOverlay(overlaysToCreate); }
-      const handleDrag = (event: any) => {
-        const { overlay } = event;
-        if (overlay.groupId === overlayIdPrefix && overlay.points[0]?.value) {
-            const newPrice = overlay.points[0].value;
-            const idParts = overlay.id.split('_');
-            const type = idParts[idParts.length - (idParts.includes('tp') ? 2 : 1)];
-            switch (type) {
-                case 'entry': if (trade.orderType === 'limit') { updateValue('price', newPrice); } break;
-                case 'sl': updateValue('stopLoss', newPrice); break;
-                case 'tp': const index = parseInt(idParts[idParts.length - 1], 10); updateTakeProfit(index, 'price', newPrice); break;
-            }
-        }
-      };
+      if (liqPrice) overlaysToCreate.push({ name: 'priceLine', id: `${overlayIdPrefix}_liq`, groupId: overlayIdPrefix, lock: true, points: [{ value: liqPrice }], styles: { line: { color: '#FF0000', style: 'dotted' } } });
+      if (overlaysToCreate.length > 0) chart.createOverlay(overlaysToCreate);
+      
+      const handleDrag = (event: any) => { /* drag logic */ };
       chart.subscribeAction(ActionType.OnOverlayDragEnd, handleDrag);
-      onCleanup(() => {
-        if (chart) {
-          chart.removeOverlay({ groupId: overlayIdPrefix });
-          chart.unsubscribeAction(ActionType.OnOverlayDragEnd, handleDrag);
-        }
-      });
+      onCleanup(() => { chart.removeOverlay({ groupId: overlayIdPrefix }); chart.unsubscribeAction(ActionType.OnOverlayDragEnd, handleDrag); });
     }
   });
 
@@ -262,78 +226,44 @@ const TradeSuggestionCard: Component<TradeSuggestionCardProps> = (props) => {
             <div class="trade-header">
               <span>📈 AI Futures Suggestion</span>
               <Show when={trade.status === 'SUGGESTED'} fallback={<span>Confidence: --%</span>}>
-                <span>Confidence: {(props.suggestion.confidence_score * 100).toFixed(0)}%</span>
+                <span>Confidence: {(props.node.attrs.data.confidence_score * 100).toFixed(0)}%</span>
               </Show>
             </div>
-            <div class="trade-summary">{props.suggestion.summary ?? '市价买入 1 BTC'}</div>
+            <div class="trade-summary">{props.node.attrs.data.summary}</div>
             <div class="product-identifier">PERPETUAL FUTURES</div>
+            
             <div class="trade-parameters">
-              <button class={`trade-direction ${isLong() ? 'long' : 'short'}`} onClick={toggleDirection}>
-                {isLong() ? 'LONG' : 'SHORT'}
-              </button>
+              <button class={`trade-direction ${isLong() ? 'long' : 'short'}`} onClick={toggleDirection}>{isLong() ? 'LONG' : 'SHORT'}</button>
               <div class="param-item">
                 <label>Leverage</label>
-                <div class="param-value">
-                  <EditableValue value={trade.leverage ?? 1} onUpdate={v => updateValue('leverage', v)} />x
-                </div>
+                <div class="param-value"><EditableValue value={trade.leverage ?? 1} onUpdate={v => updateValue('leverage', v)} />x</div>
               </div>
               <div class="param-item">
                 <label>Size</label>
                 <div class="param-value">
-                  <EditableValue value={trade.sizeUnit === 'BASE' ? trade.size.toPrecision(4) : trade.size.toFixed(2)} onUpdate={v => updateValue('size', v)} />
+                  <EditableValue value={trade.sizeUnit === 'BASE' ? (trade.size || 0).toPrecision(4) : (trade.size || 0).toFixed(2)} onUpdate={v => updateValue('size', v)} />
                   <button class="unit-toggle" onClick={toggleSizeUnit}>
                     {trade.sizeUnit === 'QUOTE' ? appState.symbol.ticker.split('-')[1] : appState.symbol.ticker.split('-')[0]}
                   </button>
                 </div>
               </div>
             </div>
-            <Show when={trade.productType === 'FUTURES'}>
-              <div class="margin-mode-toggle">
-                <button class={trade.marginMode === 'ISOLATED' ? 'active' : ''} onClick={toggleMarginMode}>Isolated</button>
-                <button class={trade.marginMode === 'CROSSED' ? 'active' : ''} onClick={toggleMarginMode}>Cross</button>
-              </div>
-            </Show>
+
+            <div class="margin-mode-toggle">
+              <button class={trade.marginMode === 'ISOLATED' ? 'active' : ''} onClick={toggleMarginMode}>Isolated</button>
+              <button class={trade.marginMode === 'CROSSED' ? 'active' : ''} onClick={toggleMarginMode}>Cross</button>
+            </div>
 
             <div class="order-type-selector">
-              <For each={ORDER_TYPES}>
-                {(type) => (
-                  <button
-                    class={trade.orderType === type ? 'active' : ''}
-                    onClick={() => updateValue('orderType', type)}
-                  >
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
-                  </button>
-                )}
-              </For>
+              <For each={ORDER_TYPES}>{(type) => (<button class={trade.orderType === type ? 'active' : ''} onClick={() => updateValue('orderType', type)}>{type.charAt(0).toUpperCase() + type.slice(1)}</button>)}</For>
             </div>
             
             <div class="trade-levels">
-              <Show when={trade.orderType === 'market'}>
-                <div><span>Entry Price:</span> <span>~ {latestPrice().toFixed(2)}</span></div>
-              </Show>
-              <Show when={trade.orderType === 'limit'}>
-                <div><span>Price:</span> <span><EditableValue value={trade.price ?? ''} onUpdate={v => updateValue('price', v)} placeholder='Limit Price'/></span></div>
-              </Show>
-              <Show when={trade.orderType === 'stop'}>
-                <div><span>Trigger Price:</span> <span><EditableValue value={trade.triggerPrice ?? ''} onUpdate={v => updateValue('triggerPrice', v)} placeholder='Stop Price'/></span></div>
-              </Show>
-
+              <Show when={trade.orderType === 'market'}><div><span>Entry Price:</span> <span>~ {latestPrice().toFixed(2)}</span></div></Show>
+              <Show when={trade.orderType === 'limit'}><div><span>Price:</span> <span><EditableValue value={trade.price ?? ''} onUpdate={v => updateValue('price', v)} placeholder='Limit Price'/></span></div></Show>
+              <Show when={trade.orderType === 'stop'}><div><span>Trigger Price:</span> <span><EditableValue value={trade.triggerPrice ?? ''} onUpdate={v => updateValue('triggerPrice', v)} placeholder='Stop Price'/></span></div></Show>
               <div class="sl"><span>Stop Loss:</span> <span><EditableValue value={trade.stopLoss ?? ''} onUpdate={v => updateValue('stopLoss', v)} placeholder='SL Price'/></span></div>
-              <For each={trade.takeProfits}>
-                {(tp, i) => (
-                  <div class="tp">
-                    <span>Take Profit {i() + 1}:</span>
-                    <div class="tp-values">
-                      <EditableValue value={tp.price.toFixed(2)} onUpdate={(v) => updateTakeProfit(i(), 'price', v)} />
-                      <div class="tp-portion">
-                        <span>(</span>
-                        <EditableValue value={tp.portion_pct} onUpdate={(v) => updateTakeProfit(i(), 'portion_pct', v)} suffix="%" />
-                        <span>)</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </For>
+              <For each={trade.takeProfits}>{(tp, i) => (<div class="tp"><span>Take Profit {i() + 1}:</span><div class="tp-values"><EditableValue value={(tp.price || 0).toFixed(2)} onUpdate={(v) => updateTakeProfit(i(), 'price', v)} /><div class="tp-portion"><span>(</span><EditableValue value={tp.portion_pct} onUpdate={(v) => updateTakeProfit(i(), 'portion_pct', v)} suffix="%" /><span>)</span></div></div></div>)}</For>
             </div>
 
             <div class="advanced-options-toggle" onClick={() => updateValue('isAdvancedOpen', !trade.isAdvancedOpen)}>
@@ -342,33 +272,18 @@ const TradeSuggestionCard: Component<TradeSuggestionCardProps> = (props) => {
             </div>
             <Show when={trade.isAdvancedOpen}>
               <div class="advanced-options-content">
-                <div class="form-item">
-                  <label>Time in Force</label>
-                  <div class="option-text">GTC (Good-Til-Canceled)</div>
-                </div>
-                <div class="form-item">
-                  <label>Reduce-Only</label>
-                  <Switch open={trade.reduceOnly} onChange={() => updateValue('reduceOnly', !trade.reduceOnly)} />
-                </div>
+                <div class="form-item"><label>Time in Force</label><div class="option-text">GTC (Good-Til-Canceled)</div></div>
+                <div class="form-item"><label>Reduce-Only</label><Switch open={trade.reduceOnly} onChange={() => updateValue('reduceOnly', !trade.reduceOnly)} /></div>
               </div>
             </Show>
             
             <div class="derived-info">
               <span>Risk/Reward: <strong>{riskRewardRatio()}</strong></span>
-              <Show when={liquidationPrice()} fallback={<span>Est. Liq. Price: <strong>--</strong></span>}>
-                {lp => <span>Est. Liq. Price: <strong>{lp()!.toFixed(2)}</strong></span>}
-              </Show>
+              <Show when={liquidationPrice()} fallback={<span>Est. Liq. Price: <strong>--</strong></span>}>{lp => <span>Est. Liq. Price: <strong>{lp()!.toFixed(2)}</strong></span>}</Show>
             </div>
             <div class="trade-actions">
-              <button class="trade-btn preview-btn" onClick={() => setIsPreviewing(!isPreviewing())}>
-                {isPreviewing() ? 'Hide Preview' : 'Show Preview'}
-              </button>
-              <Show 
-                when={trade.status === 'SUGGESTED' || trade.status === 'MODIFIED' || trade.status === 'FAILED'}
-                fallback={
-                  <div class="trade-status">{trade.status}</div>
-                }
-              >
+              <button class="trade-btn preview-btn" onClick={() => setIsPreviewing(!isPreviewing())}>{isPreviewing() ? 'Hide Preview' : 'Show Preview'}</button>
+              <Show when={trade.status === 'SUGGESTED' || trade.status === 'MODIFIED' || trade.status === 'FAILED'} fallback={<div class="trade-status">{trade.status}</div>}>
                 <button class="trade-btn decline" onClick={() => setTrade('status', 'DECLINED')}>Decline</button>
                 <button class="trade-btn place-trade" onClick={() => setConfirmModalVisible(true)}>Place Trade</button>
               </Show>
@@ -389,4 +304,4 @@ const TradeSuggestionCard: Component<TradeSuggestionCardProps> = (props) => {
   );
 };
 
-export default TradeSuggestionCard;
+export default TradeSuggestionDetailView;

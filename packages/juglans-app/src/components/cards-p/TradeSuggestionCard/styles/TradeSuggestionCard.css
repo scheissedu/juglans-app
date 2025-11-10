@@ -1,0 +1,90 @@
+/* packages/juglans-app/src/components/chat/cards/TradeSuggestionCard/styles/TradeSuggestionCard.css */
+.trade-suggestion-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  font-size: 14px;
+  color: #f8f8f8;
+  position: relative;
+}
+
+.trade-header {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+  color: var(--light-gray);
+}
+
+.trade-summary {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.product-identifier {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-highlight);
+  background-color: rgba(191, 255, 0, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  align-self: flex-start;
+}
+
+.trade-parameters {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.5fr;
+  gap: 12px;
+  align-items: center;
+}
+.param-item { display: flex; flex-direction: column; }
+.param-item label { font-size: 12px; color: var(--light-gray); margin-bottom: 4px; }
+.param-item .param-value { display: flex; align-items: center; font-size: 14px; font-weight: 600; }
+
+.unit-toggle { background: none; border: none; color: var(--light-gray); cursor: pointer; padding: 4px; margin-left: 4px; font-weight: 600; }
+.unit-toggle:hover { color: #fff; }
+
+.trade-direction { padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; border: none; font-size: 14px; }
+.trade-direction.long { background-color: #2DC08E; color: #fff; }
+.trade-direction.short { background-color: #F92855; color: #fff; }
+
+.margin-mode-toggle { display: flex; background-color: var(--input-background-color); border-radius: 6px; padding: 4px; }
+.margin-mode-toggle button { flex: 1; background: none; border: none; color: var(--light-gray); padding: 6px 0; border-radius: 4px; cursor: pointer; font-weight: 600; }
+.margin-mode-toggle button.active { background-color: var(--card-bg); color: #fff; }
+
+.order-type-selector { display: flex; background-color: var(--input-background-color); border-radius: 6px; padding: 4px; }
+.order-type-selector button { flex: 1; background: none; border: none; color: var(--light-gray); padding: 6px 0; border-radius: 4px; cursor: pointer; font-weight: 600; text-transform: capitalize; }
+.order-type-selector button.active { background-color: var(--card-bg); color: #fff; }
+
+.trade-levels { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--border-color); padding-top: 12px; }
+.trade-levels > div { display: flex; justify-content: space-between; align-items: center; }
+.trade-levels .sl { color: #F92855; }
+.trade-levels .tp { color: #2DC08E; }
+.trade-levels .tp-values { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.trade-levels .tp-portion { display: flex; align-items: center; gap: 2px; font-size: 12px; color: var(--light-gray); }
+
+.advanced-options-toggle { display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 8px 0; font-size: 12px; color: var(--light-gray); font-weight: 600; border-top: 1px solid var(--border-color); margin-top: 8px; }
+.advanced-options-toggle:hover { color: #fff; }
+.advanced-options-toggle .arrow { width: 10px; height: 10px; stroke: currentColor; transition: transform 0.2s; }
+.advanced-options-toggle .arrow.open { transform: rotate(180deg); }
+
+.advanced-options-content { display: flex; flex-direction: column; gap: 16px; padding: 16px; background-color: var(--input-background-color); border-radius: 8px; }
+.advanced-options-content .form-item { display: flex; justify-content: space-between; align-items: center; }
+.advanced-options-content .form-item label { font-size: 14px; font-weight: 500; color: var(--light-gray); }
+.advanced-options-content .option-text { font-weight: 600; }
+
+.derived-info { display: flex; justify-content: space-between; font-size: 12px; color: var(--light-gray); border-top: 1px solid var(--border-color); padding-top: 12px; }
+
+.trade-actions { display: flex; gap: 12px; margin-top: 8px; }
+.trade-btn { height: 38px; font-size: 14px; font-weight: 600; margin: 0; padding: 6px 16px; border: 1px solid var(--light-gray); background: transparent; color: var(--light-gray); border-radius: 8px; cursor: pointer; }
+.trade-actions .preview-btn { margin-right: auto; }
+.trade-btn.decline:hover { border-color: #fff; color: #fff; }
+.trade-btn.place-trade { border-color: var(--primary-highlight); background-color: var(--primary-highlight); color: #000; }
+
+.trade-status { display: flex; align-items: center; justify-content: center; height: 38px; font-size: 14px; font-weight: 600; color: var(--light-gray); }
+
+.trade-disclaimer { font-size: 12px; color: var(--light-gray); text-align: center; }
+
+/* Styles for EditableValue component */
+.editable-value span:hover { background-color: var(--input-background-color); border-color: var(--chat-border-color); }
+.editable-placeholder { color: var(--light-gray); font-style: italic; font-weight: normal; }

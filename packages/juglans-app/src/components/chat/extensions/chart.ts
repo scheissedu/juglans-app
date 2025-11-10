@@ -42,13 +42,25 @@ export function createChartChatExtension(
     const chart = chartInstance?.getChart();
     if (!chart || !edt) return;
 
+    const dispatchAttachmentEvent = (attachment: any) => {
+      const customEvent = new CustomEvent('add-chat-attachment', { detail: attachment });
+      document.body.dispatchEvent(customEvent);
+    };
+
     switch (item.key) {
       case 'add_klines': {
-        const range = chart.getVisibleRange();
         const dataList = chart.getDataList();
-        const klineData = dataList.slice(range.from, range.to);
-        const event = new CustomEvent('add-chat-attachment', { detail: { type: 'kline', id: `kline_${Date.now()}`, symbol: state.symbol.shortName || state.symbol.ticker, period: state.period.text, data: JSON.stringify(klineData) } });
-        document.body.dispatchEvent(event);
+        const klineData = dataList.slice(-100); // 使用负数索引从数组末尾开始截取
+        
+        dispatchAttachmentEvent({
+          id: `kline_${Date.now()}`,
+          type: 'kline',
+          data: {
+            symbol: state.symbol.shortName || state.symbol.ticker,
+            period: state.period.text,
+            data: klineData
+          }
+        });
         break;
       }
       case 'add_symbol': {
@@ -60,8 +72,11 @@ export function createChartChatExtension(
       case 'add_positions': {
         try {
           const positions = await state.brokerApi.getPositions();
-          const event = new CustomEvent('add-chat-attachment', { detail: { type: 'position', id: `pos_${Date.now()}`, data: JSON.stringify(positions) } });
-          document.body.dispatchEvent(event);
+          dispatchAttachmentEvent({
+            id: `pos_${Date.now()}`, // --- Added ID
+            type: 'position',
+            data: positions
+          });
         } catch (error) { console.error("Failed to fetch positions:", error); }
         break;
       }
@@ -75,6 +90,11 @@ export function createChartChatExtension(
     const chart = chartInstance.getChart();
     if (!chart) return;
     
+    const dispatchAttachmentEvent = (attachment: any) => {
+      const customEvent = new CustomEvent('add-chat-attachment', { detail: attachment });
+      document.body.dispatchEvent(customEvent);
+    };
+
     if (chartInstance instanceof KLineChartPro) {
       if (chart.getOverlayById('robot_selection_rect_instance')) {
         chart.removeOverlay('robot_selection_rect_instance');
@@ -93,17 +113,15 @@ export function createChartChatExtension(
             const endIndex = Math.max(points[0].dataIndex, points[1].dataIndex);
             const selectedData = chart.getDataList().slice(startIndex, endIndex + 1);
             
-            // --- 核心修正：直接派发 add-chat-attachment 事件 ---
-            const newAttachment = {
+            dispatchAttachmentEvent({
+              id: `kline_${Date.now()}`, // --- Added ID
               type: 'kline',
-              id: `kline_${Date.now()}`,
-              symbol: state.symbol.shortName || state.symbol.ticker,
-              period: state.period.text,
-              data: JSON.stringify(selectedData)
-            };
-            const customEvent = new CustomEvent('add-chat-attachment', { detail: newAttachment });
-            document.body.dispatchEvent(customEvent);
-            // --- 修正结束 ---
+              data: {
+                symbol: state.symbol.shortName || state.symbol.ticker,
+                period: state.period.text,
+                data: selectedData
+              }
+            });
           }
           chart.removeOverlay(overlay.id);
         }
@@ -111,17 +129,15 @@ export function createChartChatExtension(
     } else {
       const range = chart.getVisibleRange();
       const data = chart.getDataList().slice(range.from, range.to);
-      // --- 核心修正：直接派发 add-chat-attachment 事件 ---
-       const newAttachment = {
-          type: 'kline',
-          id: `kline_${Date.now()}`,
+      dispatchAttachmentEvent({
+        id: `kline_${Date.now()}`, // --- Added ID
+        type: 'kline',
+        data: {
           symbol: state.symbol.shortName || state.symbol.ticker,
           period: state.period.text,
-          data: JSON.stringify(data)
-       };
-      const customEvent = new CustomEvent('add-chat-attachment', { detail: newAttachment });
-      document.body.dispatchEvent(customEvent);
-      // --- 修正结束 ---
+          data: data
+        }
+      });
       alert(`Attached ${data.length} visible bars from the Light chart.`);
     }
   };

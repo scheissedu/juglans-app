@@ -1,15 +1,12 @@
 // packages/juglans-app/src/components/chat/MessageRenderer.tsx
-
 import { Component, onMount, onCleanup, createEffect } from 'solid-js';
 import { Editor } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import { SolidNodeViewRenderer } from 'tiptap-solid';
 
-import { KLineDataNode as KLineDataNodeExtension } from './KLineDataNode';
-
-// --- 关键修正：从新的 cards 目录导入 ---
-import { KLineDataCard } from './cards';
-// --- 修正结束 ---
+// --- 核心修改 1: 导入新的通用节点和渲染器 ---
+import { GenericCardNode } from '@/components/cards-p/GenericCardNode';
+import CardRenderer from '@/components/cards-p/CardRenderer';
 
 interface MessageRendererProps {
   content: any;
@@ -19,9 +16,10 @@ const MessageRenderer: Component<MessageRendererProps> = (props) => {
   let editorContainerRef: HTMLDivElement | undefined;
   let editor: Editor | null = null;
 
-  const KLineDataNodeWithView = KLineDataNodeExtension.extend({
+  // --- 核心修改 2: 配置通用节点使用统一的渲染器 ---
+  const CardNodeWithView = GenericCardNode.extend({
     addNodeView() {
-      return SolidNodeViewRenderer(KLineDataCard);
+      return SolidNodeViewRenderer(CardRenderer);
     },
   });
 
@@ -31,7 +29,7 @@ const MessageRenderer: Component<MessageRendererProps> = (props) => {
         element: editorContainerRef,
         extensions: [
           StarterKit,
-          KLineDataNodeWithView,
+          CardNodeWithView, // --- 核心修改 3: 使用新的配置 ---
         ],
         content: props.content,
         editable: false,

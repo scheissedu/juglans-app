@@ -1,9 +1,9 @@
+// packages/juglans-app/src/pages/market/AssetListItem.tsx
 import { Component, Show } from 'solid-js';
 import { SymbolInfo } from '@klinecharts/pro';
 import { TickerData } from '@/types';
 import '../MarketPage.css';
-// +++ 核心修正：将 'icon' 修改为 'icons' +++
-import CryptoIcon from '@/components/icons/CryptoIcon'; 
+import AssetIcon from '@/components/icons/AssetIcon'; // <-- 核心修改: 导入新组件
 
 interface AssetListItemProps {
   symbol: SymbolInfo;
@@ -12,15 +12,23 @@ interface AssetListItemProps {
 }
 
 const AssetListItem: Component<AssetListItemProps> = (props) => {
-  const lastPrice = () => props.ticker?.lastPrice ?? 0;
-  const changePercent = () => props.ticker?.priceChangePercent ?? 0;
+  if (!props.symbol) {
+    return null;
+  }
 
+  const lastPrice = () => props.ticker?.lastPrice;
+  const changePercent = () => props.ticker?.priceChangePercent ?? 0;
+  
   const baseSymbol = () => (props.symbol.shortName ?? props.symbol.ticker).split('-')[0];
+  
+  // --- 核心修改: 确定资产类型 ---
+  const assetType = () => (props.symbol.market === 'stocks' ? 'stock' : 'crypto');
 
   return (
     <div class="asset-list-item" onClick={() => props.onClick(props.symbol)}>
       <div class="asset-info">
-        <CryptoIcon symbol={baseSymbol()} />
+        {/* --- 核心修改: 使用新组件并传入类型 --- */}
+        <AssetIcon symbol={baseSymbol()} assetType={assetType()} />
         <div class="asset-names">
           <div class="asset-short-name">{props.symbol.shortName ?? props.symbol.ticker}</div>
           <div class="asset-long-name">{props.symbol.name}</div>
@@ -34,12 +42,14 @@ const AssetListItem: Component<AssetListItemProps> = (props) => {
       </div>
 
       <div class="asset-price-info">
-        <Show when={lastPrice() > 0} fallback={<div class="asset-last-price">--</div>}>
-          <div class="asset-last-price">${lastPrice().toFixed(2)}</div>
+        <Show when={lastPrice() !== undefined} fallback={<div class="asset-last-price">--</div>}>
+          <div class="asset-last-price">${lastPrice()!.toFixed(2)}</div>
         </Show>
-        <div class={`asset-change ${changePercent() * 100 >= 0 ? 'up' : 'down'}`}>
-          {(changePercent() * 100).toFixed(2)}%
-        </div>
+        <Show when={props.ticker}>
+          <div class={`asset-change ${changePercent() >= 0 ? 'up' : 'down'}`}>
+            {(changePercent() * 100).toFixed(2)}%
+          </div>
+        </Show>
       </div>
     </div>
   );

@@ -1,10 +1,9 @@
-import { Component, createEffect, on, onMount, onCleanup, ParentProps, createSignal, Show } from 'solid-js';
+// packages/juglans-app/src/App.tsx
+import { Component, createEffect, on, onCleanup, ParentProps, createSignal, Show } from 'solid-js';
 import { useLocation, useNavigate } from '@solidjs/router';
 import { produce } from 'solid-js/store';
-
 import { KLineChartPro } from '@klinecharts/pro';
 import { useAppContext } from './context/AppContext';
-import { useBrokerState } from '@klinecharts/pro';
 import Navbar from './components/Navbar/Navbar';
 import { ChatArea } from './components/chat/ChatArea';
 import ModeSelectorModal from './components/modals/ModeSelectorModal';
@@ -33,26 +32,25 @@ const responsiveStyles = `
 
 const App: Component<ParentProps> = (props) => {
   const [state, actions] = useAppContext();
-  const [, setBrokerState] = useBrokerState();
   const [isModeSelectorOpen, setModeSelectorOpen] = createSignal(false);
   const [isSidebarOpen, setSidebarOpen] = createSignal(false);
   const location = useLocation();
   const navigate = useNavigate();
   const [isWideLayout, setIsWideLayout] = createSignal(window.innerWidth > 1000);
 
-  // --- 核心修改 1: 为图表容器创建一个 ref ---
   let chartWrapperRef: HTMLDivElement | undefined;
 
-  onMount(() => {
+  createEffect(() => {
     const brokerApi = state.brokerApi;
     if (brokerApi) {
       console.log('[App.tsx] Subscribing to BrokerAPI updates...');
       brokerApi.subscribe({
         onAccountInfoUpdate: (accountInfo) => {
-          setBrokerState('accountInfo', accountInfo);
+          console.log('[App.tsx] Received onAccountInfoUpdate in subscription callback:', accountInfo);
+          actions.setAccountInfo(accountInfo);
         },
         onPositionUpdate: (position) => {
-          setBrokerState('positions', produce(positions => {
+          actions.setPositions(produce(positions => {
             const index = positions.findIndex(p => p.id === position.id);
             if (index > -1) {
               if (position.qty <= 0) {
@@ -66,7 +64,7 @@ const App: Component<ParentProps> = (props) => {
           }));
         },
         onOrderUpdate: (order) => {
-          setBrokerState('orders', produce(orders => {
+          actions.setOrders(produce(orders => {
             const index = orders.findIndex(o => o.id === order.id);
             if (index > -1) {
               orders[index] = order;
@@ -105,14 +103,12 @@ const App: Component<ParentProps> = (props) => {
     });
   });
 
-  // --- 核心修改 2: 添加 ResizeObserver 来监听图表容器尺寸变化 ---
   createEffect(() => {
     if (!chartWrapperRef) return;
 
     let resizeTimeout: number;
     const debouncedResize = () => {
       clearTimeout(resizeTimeout);
-      // 使用 setTimeout 进行防抖，避免在高频尺寸变化时过度消耗性能
       resizeTimeout = setTimeout(() => {
         state.chart?.getChart()?.resize();
       }, 100);
@@ -179,7 +175,6 @@ const App: Component<ParentProps> = (props) => {
         <div class="app-layout" classList={{ 'app-layout-wide': isWideLayout() }}>
           <Navbar onGridClick={() => setSidebarOpen(true)} onModeSelectorClick={() => setModeSelectorOpen(true)} />
           <div class="main-content-area">
-            {/* --- 核心修改 3: 将 ref 绑定到 div 上 --- */}
             <div class="chart-page-wrapper" ref={chartWrapperRef} style={chartWrapperStyle()}>
               <Show when={props.children} fallback={<div>Loading Page...</div>}>
                 {props.children}

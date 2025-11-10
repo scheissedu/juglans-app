@@ -1,0 +1,63 @@
+/* packages/juglans-app/src/components/chat/cards/styles/SummaryCard.css */
+.summary-card-wrapper {
+  display: inline-block;
+  cursor: pointer;
+  user-select: none;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.summary-card {
+  padding: 12px;
+  border-radius: 8px;
+  background-color: var(--chat-popover-background);
+  border: 1px solid var(--chat-border-color);
+  width: 300px;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.summary-card-wrapper:hover .summary-card {
+  border-color: var(--primary-highlight);
+}
+
+.summary-card .card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  font-size: 16px;
+  color: #fff;
+}
+
+.summary-card .header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.summary-card .header-title svg {
+  width: 18px;
+  height: 18px;
+}
+
+.summary-card .card-remove-btn {
+  background: none;
+  border: none;
+  color: var(--chat-text-second-color);
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0 4px;
+}
+.summary-card .card-remove-btn:hover {
+  color: #ff4d4f;
+}
+
+.summary-content {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--chat-text-second-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
