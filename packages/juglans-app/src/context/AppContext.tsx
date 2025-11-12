@@ -1,8 +1,9 @@
 // packages/juglans-app/src/context/AppContext.tsx
-import { createContext, useContext, Component, ParentProps, onMount } from 'solid-js';
-import { createStore } from 'solid-js/store';
+import { createContext, useContext, Component, ParentProps, onMount, createSignal } from 'solid-js';
+import { createStore, produce } from 'solid-js/store';
 import { useNavigate } from '@solidjs/router';
-import type { ChartPro, BrokerAPI, SymbolInfo, Period, AccountInfo, Position, Order } from '@klinecharts/pro';
+import type { ChartPro, BrokerAPI, Period, AccountInfo, Position, Order } from '@klinecharts/pro';
+import { Instrument } from '@/instruments';
 import type { ChartProLight } from '@klinecharts/light';
 import { MockBrokerAPI } from '../api/MockBrokerAPI';
 import type { SuggestionItem } from '../components/chat/SuggestionList';
@@ -24,10 +25,16 @@ export interface ChatExtension {
   getAttachmentActions: () => Array<{ icon: Component, action: () => void, tooltip: string, label: string }>;
 }
 
+export interface ContextSource {
+  id: string;
+  label: string;
+  getContext: () => Promise<Record<string, any>>;
+}
+
 export interface AppContextState {
   chart: AnyChart | null;
-  brokerApi: BrokerAPI; // Will be initialized as null but guaranteed to exist after loading
-  symbol: SymbolInfo;
+  brokerApi: BrokerAPI;
+  instrument: Instrument; // 注意：这里不再是 Nullable
   period: Period;
   chartMode: 'pro' | 'light';
   chatExtension: ChatExtension | null;
@@ -35,16 +42,17 @@ export interface AppContextState {
   user: { id: string; username: string } | null;
   token: string | null;
   authLoading: boolean;
-
-  // --- 核心修改 1: 将 BrokerState 合并进来 ---
+  watchlist: string[];
   accountInfo: AccountInfo | null;
   positions: Position[];
   orders: Order[];
+  availableContexts: ContextSource[];
+  enabledContexts: string[];
 }
 
 export interface AppContextActions {
   setChart: (chart: AnyChart | null) => void;
-  setSymbol: (symbol: SymbolInfo) => void;
+  setInstrument: (instrument: Instrument) => void;
   setPeriod: (period: Period) => void;
   setChartMode: (mode: 'pro' | 'light') => void;
   setChatExtension: (extension: ChatExtension | null) => void;
@@ -52,11 +60,14 @@ export interface AppContextActions {
   navigate: ReturnType<typeof useNavigate>;
   setUser: (user: { id: string; username: string } | null, token: string | null) => void;
   logout: () => void;
-  
-  // --- 核心修改 2: 添加用于更新 Broker 状态的 actions ---
+  toggleWatchlist: (ticker: string) => void;
   setAccountInfo: (info: AccountInfo | null) => void;
   setPositions: (producer: (prev: Position[]) => Position[] | void) => void;
   setOrders: (producer: (prev: Order[]) => Order[] | void) => void;
+  registerContextSource: (source: ContextSource) => void;
+  unregisterContextSource: (id: string) => void;
+  toggleContextEnabled: (id: string) => void;
+  buildChatContext: () => Promise<Record<string, any>>;
 }
 
 type AppContextValue = [state: AppContextState, actions: AppContextActions];
@@ -67,7 +78,7 @@ export const AppContextProvider: Component<ParentProps> = (props) => {
   const [state, setState] = createStore<AppContextState>({
     chart: null,
     brokerApi: null as unknown as BrokerAPI,
-    symbol: { ticker: 'BTC-USDT' },
+    instrument: new Instrument('CRYPTO:BTC.OKX@USDT_SPOT'), // 确保有一个有效的初始值
     period: { multiplier: 1, timespan: 'hour', text: '1H' },
     chartMode: 'pro',
     chatExtension: null,
@@ -75,24 +86,32 @@ export const AppContextProvider: Component<ParentProps> = (props) => {
     user: null,
     token: null,
     authLoading: true,
-
-    // --- 核心修改 3: 初始化合并后的状态 ---
+    watchlist: [],
     accountInfo: null,
     positions: [],
     orders: [],
+    availableContexts: [],
+    enabledContexts: ['my_context'],
+  });
+
+  const [myContextSource] = createSignal<ContextSource>({
+    id: 'my_context',
+    label: 'My Context (Account, Positions)',
+    getContext: async () => ({
+        myContext: true,
+        accountInfo: state.accountInfo,
+        positions: state.positions,
+      }),
   });
 
   const actions: AppContextActions = {
     setChart: (chart) => setState('chart', chart),
-    setSymbol: (symbol) => setState('symbol', symbol),
+    setInstrument: (instrument) => setState('instrument', instrument),
     setPeriod: (period) => setState('period', period),
     setChartMode: (mode) => setState('chartMode', mode),
     setChatExtension: (extension) => setState('chatExtension', extension),
-    sendMessage: (text) => {
-      document.body.dispatchEvent(new CustomEvent('send-chat-message', { detail: text }));
-    },
+    sendMessage: (text) => document.body.dispatchEvent(new CustomEvent('send-chat-message', { detail: text })),
     navigate: (() => {}) as ReturnType<typeof useNavigate>,
-    
     setUser(user, token) {
       if (user && token) {
         localStorage.setItem('authToken', token);
@@ -105,32 +124,73 @@ export const AppContextProvider: Component<ParentProps> = (props) => {
       localStorage.removeItem('user');
       window.location.href = '/login';
     },
-
-    // --- 核心修改 4: 实现新的 actions ---
+    toggleWatchlist(ticker) {
+      setState(produce(s => {
+        const index = s.watchlist.indexOf(ticker);
+        if (index > -1) s.watchlist.splice(index, 1);
+        else s.watchlist.push(ticker);
+        localStorage.setItem('juglans_watchlist', JSON.stringify(s.watchlist));
+      }));
+    },
     setAccountInfo: (info) => setState('accountInfo', info),
     setPositions: (producer) => setState('positions', producer),
     setOrders: (producer) => setState('orders', producer),
+    registerContextSource(source) {
+      setState(produce(s => {
+        if (!s.availableContexts.some(cs => cs.id === source.id)) {
+          s.availableContexts.push(source);
+          if (source.id !== 'my_context') s.enabledContexts.push(source.id);
+        }
+      }));
+    },
+    unregisterContextSource(id) {
+      setState(produce(s => {
+        s.availableContexts = s.availableContexts.filter(cs => cs.id !== id);
+        s.enabledContexts = s.enabledContexts.filter(enabledId => enabledId !== id);
+      }));
+    },
+    toggleContextEnabled(id) {
+      setState(produce(s => {
+        const index = s.enabledContexts.indexOf(id);
+        if (index > -1) s.enabledContexts.splice(index, 1);
+        else s.enabledContexts.push(id);
+      }));
+    },
+    async buildChatContext() {
+      const finalContext: Record<string, any> = {
+        instrument: state.instrument.identifier, // 发送标识符字符串
+        period: state.period,
+      };
+      const extensionContext = state.chatExtension?.getContext() ?? {};
+      Object.assign(finalContext, extensionContext);
+      for (const id of state.enabledContexts) {
+        const source = state.availableContexts.find(cs => cs.id === id);
+        if (source) {
+          try {
+            Object.assign(finalContext, await source.getContext());
+          } catch (error) {
+            console.error(`[Context] Error from source "${id}":`, error);
+          }
+        }
+      }
+      return finalContext;
+    },
   };
 
   onMount(() => {
-    console.log("[AppContext] onMount: Initializing authentication and BrokerAPI.");
+    actions.registerContextSource(myContextSource());
+    const savedWatchlist = localStorage.getItem('juglans_watchlist');
+    if (savedWatchlist) setState('watchlist', JSON.parse(savedWatchlist));
     const token = localStorage.getItem('authToken');
     const userStr = localStorage.getItem('user');
     let user = null;
     let finalBrokerApi: BrokerAPI;
-
     if (token && userStr) {
-      try {
-        user = JSON.parse(userStr);
-        const userSpecificKey = `klinecharts_pro_mock_broker_state_${user.id}`;
-        finalBrokerApi = new MockBrokerAPI(userSpecificKey);
-      } catch (e) {
-        finalBrokerApi = new MockBrokerAPI('default_guest_key');
-      }
+      user = JSON.parse(userStr);
+      finalBrokerApi = new MockBrokerAPI(`klinecharts_pro_mock_broker_state_${user.id}`);
     } else {
       finalBrokerApi = new MockBrokerAPI('default_guest_key');
     }
-    
     setState({
       brokerApi: finalBrokerApi,
       isAuthenticated: !!user,
@@ -138,7 +198,6 @@ export const AppContextProvider: Component<ParentProps> = (props) => {
       token: token,
       authLoading: false
     });
-    console.log("[AppContext] onMount: Initialization complete.");
   });
 
   return (
@@ -150,8 +209,6 @@ export const AppContextProvider: Component<ParentProps> = (props) => {
 
 export function useAppContext() {
   const context = useContext(AppContext);
-  if (!context) {
-    throw new Error('useAppContext must be used within an AppContextProvider');
-  }
+  if (!context) throw new Error('useAppContext must be used within an AppContextProvider');
   return context;
 }

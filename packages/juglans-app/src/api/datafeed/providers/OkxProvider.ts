@@ -1,12 +1,8 @@
+// packages/juglans-app/src/api/datafeed/providers/OkxProvider.ts
+
 import { KLineData } from '@klinecharts/core';
-import {
-  Datafeed,
-  SymbolInfo,
-  Period,
-  DatafeedSubscribeCallback,
-  DatafeedConfiguration,
-  HistoryKLineDataParams
-} from '@klinecharts/pro';
+import { Datafeed, Period, DatafeedSubscribeCallback, DatafeedConfiguration, HistoryKLineDataParams } from '@klinecharts/pro';
+import { Instrument, AssetClass, ProductType } from '@/instruments';
 import { TickerData } from '../../../types';
 
 const API_BASE_URL = 'https://www.okx.com';
@@ -59,7 +55,6 @@ export default class OkxProvider implements Datafeed {
       try {
         const result = JSON.parse(event.data);
         if (result.event === 'subscribe' || result.event === 'unsubscribe') {
-          console.log(`[OkxProvider] WS Event: ${result.event}`, result.arg);
           return;
         }
 
@@ -103,18 +98,14 @@ export default class OkxProvider implements Datafeed {
         const response = await fetch(`${API_BASE_URL}/api/v5/market/tickers?instType=${instType}`);
         const result = await response.json();
         if (result.code === '0' && result.data) {
-            return result.data.map((tickerRaw: any) => {
-                const lastPrice = parseFloat(tickerRaw.last);
-                const open24h = parseFloat(tickerRaw.open24h);
-                return {
-                    symbol: tickerRaw.instId,
-                    lastPrice: lastPrice,
-                    priceChange: lastPrice - open24h,
-                    priceChangePercent: open24h === 0 ? 0 : (lastPrice / open24h) - 1,
-                    volume: parseFloat(tickerRaw.vol24h),
-                    turnover: parseFloat(tickerRaw.volCcy24h),
-                };
-            });
+            return result.data.map((tickerRaw: any) => ({
+                symbol: tickerRaw.instId,
+                lastPrice: parseFloat(tickerRaw.last),
+                priceChange: parseFloat(tickerRaw.last) - parseFloat(tickerRaw.open24h),
+                priceChangePercent: parseFloat(tickerRaw.open24h) === 0 ? 0 : (parseFloat(tickerRaw.last) / parseFloat(tickerRaw.open24h)) - 1,
+                volume: parseFloat(tickerRaw.vol24h),
+                turnover: parseFloat(tickerRaw.volCcy24h),
+            }));
         }
         return [];
     } catch (error) {
@@ -130,7 +121,7 @@ export default class OkxProvider implements Datafeed {
     }), 0);
   }
 
-  async searchSymbols(userInput: string, onResult: (symbols: SymbolInfo[]) => void): Promise<void> {
+  async searchSymbols(userInput: string, onResult: (instruments: Instrument[]) => void): Promise<void> {
     try {
       const response = await fetch(`${API_BASE_URL}/api/v5/public/instruments?instType=SPOT`);
       const result = await response.json();
@@ -139,11 +130,11 @@ export default class OkxProvider implements Datafeed {
           item.instId.toLowerCase().includes(userInput.toLowerCase()) ||
           item.baseCcy.toLowerCase().includes(userInput.toLowerCase())
         );
-        const symbols: SymbolInfo[] = filteredData.map((item: any) => ({
-          ticker: item.instId, name: `${item.baseCcy}/${item.quoteCcy}`, shortName: item.instId,
-          exchange: 'OKX', market: 'spot', type: 'crypto',
-        }));
-        onResult(symbols);
+        const instruments: Instrument[] = filteredData.map((item: any) => {
+          const identifier = `CRYPTO:${item.baseCcy}.${item.instId.includes('SWAP') ? 'DERIVATIVES' : 'OKX'}@${item.quoteCcy}_${item.instId.includes('SWAP') ? ProductType.PERP : ProductType.SPOT}`;
+          return new Instrument(identifier);
+        });
+        onResult(instruments);
       } else { onResult([]); }
     } catch (error: any) {
       console.error("[OkxProvider] Search symbols error:", error.message);
@@ -151,88 +142,72 @@ export default class OkxProvider implements Datafeed {
     }
   }
 
-  async resolveSymbol(ticker: string, onResolve: (symbol: SymbolInfo) => void, onError: (reason: string) => void): Promise<void> {
+  async resolveSymbol(identifier: string, onResolve: (instrument: Instrument) => void, onError: (reason: string) => void): Promise<void> {
+    const instrument = new Instrument(identifier);
+    const tickerForApi = instrument.getTicker();
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v5/public/instruments?instType=SPOT&instId=${ticker}`);
+      const response = await fetch(`${API_BASE_URL}/api/v5/public/instruments?instType=SPOT&instId=${tickerForApi}`);
       const result = await response.json();
       if (result.code === '0' && result.data && result.data.length > 0) {
-        const data = result.data[0];
-        onResolve({
-          ticker: data.instId, name: `${data.baseCcy}/${data.quoteCcy}`, shortName: data.instId,
-          exchange: 'OKX', market: 'spot', type: 'crypto',
-          pricePrecision: this._parsePrecision(data.tickSz),
-          volumePrecision: this._parsePrecision(data.lotSz),
-          timezone: 'Etc/UTC', supported_resolutions: supportedResolutions,
-          has_intraday: true, session: '24x7',
-        });
+        onResolve(instrument);
       } else { throw new Error(result.msg || 'Symbol not found'); }
     } catch (error: any) {
-      console.error(`[OkxProvider] Resolve symbol error for ${ticker}:`, error.message);
+      console.error(`[OkxProvider] Resolve symbol error for ${tickerForApi}:`, error.message);
       onError(error.message);
     }
   }
 
-  async getHistoryKLineData(symbol: SymbolInfo, period: Period, params: HistoryKLineDataParams, onResult: (data: KLineData[], meta: { noData?: boolean, more?: boolean }) => void, onError: (reason: string) => void): Promise<void> {
+  async getHistoryKLineData(instrument: Instrument, period: Period, params: HistoryKLineDataParams, onResult: (data: KLineData[], meta: { noData?: boolean, more?: boolean }) => void, onError: (reason: string) => void): Promise<void> {
     const bar = this._periodToOkxBar(period);
-    
+    const tickerForApi = instrument.getTicker();
     let url: string;
     if (params.firstDataRequest) {
-      url = `${API_BASE_URL}/api/v5/market/history-candles?instId=${symbol.ticker}&bar=${bar}&limit=300`;
+      url = `${API_BASE_URL}/api/v5/market/history-candles?instId=${tickerForApi}&bar=${bar}&limit=300`;
     } else {
-      url = `${API_BASE_URL}/api/v5/market/history-candles?instId=${symbol.ticker}&bar=${bar}&after=${params.from}&limit=100`;
+      url = `${API_BASE_URL}/api/v5/market/history-candles?instId=${tickerForApi}&bar=${bar}&after=${params.from}&limit=100`;
     }
 
     try {
       const response = await fetch(url);
       const result = await response.json();
-
       if (result.code !== '0' || !result.data) {
         throw new Error(result.msg || 'Failed to fetch history data');
       }
-
       const klineData: KLineData[] = result.data.map((d: string[]) => ({
         timestamp: parseInt(d[0], 10), open: parseFloat(d[1]), high: parseFloat(d[2]),
         low: parseFloat(d[3]), close: parseFloat(d[4]), volume: parseFloat(d[5]),
         turnover: parseFloat(d[6]),
       })).reverse();
-      
       onResult(klineData, { noData: klineData.length === 0, more: klineData.length > 0 });
-
     } catch (error: any) {
       console.error(`[OkxProvider] Get history k-line error: ${error.message}`);
       onError(error.message);
     }
   }
 
-  subscribe(symbol: SymbolInfo, period: Period, onTick: DatafeedSubscribeCallback, listenerGuid: string): void {
+  subscribe(instrument: Instrument, period: Period, onTick: DatafeedSubscribeCallback, listenerGuid: string): void {
     const channel = this._periodToOkxCandleChannel(period);
-    const instId = symbol.ticker;
+    const instId = instrument.getTicker();
     const arg = { channel, instId };
-
     this._subscriptions.set(listenerGuid, { type: 'candle', channel, instId, onTick });
-
     if (this._wsReady) {
       this._ws?.send(JSON.stringify({ op: 'subscribe', args: [arg] }));
     }
-    console.log(`[OkxProvider] Queued candle subscription: ${listenerGuid} to ${channel}:${instId}`);
   }
 
   unsubscribe(listenerGuid: string): void {
     const subscription = this._subscriptions.get(listenerGuid);
     if (subscription && subscription.type === 'candle') {
       this._subscriptions.delete(listenerGuid);
-      
       let isTickerStillSubscribed = false;
       this._subscriptions.forEach(sub => {
         if (sub.type === 'candle' && sub.channel === subscription.channel && sub.instId === subscription.instId) {
           isTickerStillSubscribed = true;
         }
       });
-      
       if (!isTickerStillSubscribed && this._wsReady) {
         const arg = { channel: subscription.channel, instId: subscription.instId };
         this._ws?.send(JSON.stringify({ op: 'unsubscribe', args: [arg] }));
-        console.log(`[OkxProvider] WebSocket unsubscribed from ${subscription.channel}:${subscription.instId}`);
       }
     }
   }
@@ -244,16 +219,12 @@ export default class OkxProvider implements Datafeed {
     if (timespan === 'day') return `${multiplier}D`;
     if (timespan === 'week') return `${multiplier}W`;
     if (timespan === 'month') return `${multiplier}M`;
-    if (timespan === 'year') return `${multiplier}Y`;
     return '1D';
   }
   
   private _parsePrecision(precisionString: string): number {
     if (precisionString.includes('.')) {
-      const parts = precisionString.split('.');
-      if (parts.length > 1 && parts[1]) {
-        return parts[1].length;
-      }
+      return precisionString.split('.')[1]?.length || 0;
     }
     return 0;
   }

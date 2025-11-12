@@ -1,0 +1,81 @@
+/* packages/juglans-app/src/pages/market/Discover.css */
+
+.discover-section {
+  padding: 0 24px 20px;
+  flex-shrink: 0;
+}
+
+.discover-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+}
+
+.discover-scroll-container {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 12px; /* For scrollbar space, even if hidden */
+  /* Hide scrollbar */
+  scrollbar-width: none; /* Firefox */
+}
+.discover-scroll-container::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
+}
+
+.discover-empty {
+    color: var(--light-gray);
+    font-style: italic;
+}
+
+/* --- DiscoverCard Styles --- */
+.discover-card {
+  flex: 0 0 150px; /* Do not grow, do not shrink, base width 150px */
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.discover-card:hover {
+  border-color: var(--primary-highlight);
+}
+
+.card-asset-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.card-asset-info .crypto-icon-container {
+  width: 24px;
+  height: 24px;
+}
+.card-asset-info .asset-icon-placeholder-fallback {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+}
+.card-asset-ticker {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.card-asset-price {
+  font-size: 16px;
+  font-weight: 600;
+  font-family: monospace;
+}
+
+.card-asset-change {
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 4px;
+}
+.card-asset-change.up {
+  color: #2DC08E;
+}
+.card-asset-change.down {
+  color: #F92855;
+}

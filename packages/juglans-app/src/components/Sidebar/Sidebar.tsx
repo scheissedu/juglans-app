@@ -5,12 +5,14 @@ import { Portal } from 'solid-js/web';
 import { useAppContext } from '../../context/AppContext';
 
 import './Sidebar.css';
-import CloseIcon from '../icons/CloseIcon'; // --- 核心修正 1: 导入正确的 CloseIcon ---
+import CloseIcon from '../icons/CloseIcon';
 import HomeIcon from '../icons/HomeIcon';
 import SearchIcon from '../icons/SearchIcon';
 import ExchangeIcon from '../icons/ExchangeIcon';
 import WalletIcon from '../icons/WalletIcon';
 import NewsIcon from '../icons/NewsIcon';
+import ChatIcon from '../icons/ChatIcon'; // 1. 导入新的聊天图标
+import BookIcon from '../icons/BookIcon';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -23,6 +25,14 @@ const navItems = [
   { path: '/market', label: 'Market', icon: ExchangeIcon },
   { path: '/wallet', label: 'Wallet', icon: WalletIcon },
   { path: '/news', label: 'News', icon: NewsIcon },
+  { path: '/tutorials', label: 'Tutorials', icon: BookIcon },
+];
+
+// 2. 创建一个模拟的聊天频道列表
+const liveChatChannels = [
+  { id: '@general', name: 'General' },
+  { id: '@trading-ideas', name: 'Trading Ideas' },
+  { id: '@dev-team', name: 'Dev Team' },
 ];
 
 const Sidebar: Component<SidebarProps> = (props) => {
@@ -37,7 +47,6 @@ const Sidebar: Component<SidebarProps> = (props) => {
         <div class="sidebar-header">
           <img src="/logo.svg" alt="Juglans Logo" class="sidebar-logo" />
           <button class="iconButton" onClick={props.onClose}>
-            {/* --- 核心修正 2: 使用 CloseIcon 替换 CollapseIcon --- */}
             <CloseIcon class="icon" />
           </button>
         </div>
@@ -49,6 +58,22 @@ const Sidebar: Component<SidebarProps> = (props) => {
                 <A href={item.path} onClick={props.onClose}>
                   <item.icon class="nav-icon" />
                   <span>{item.label}</span>
+                </A>
+              </li>
+            )}
+          </For>
+        </ul>
+
+        {/* 3. 添加新的聊天列表部分 */}
+        <div class="sidebar-divider" />
+        <h3 class="sidebar-group-title">Live Chat</h3>
+        <ul class="sidebar-nav-list">
+          <For each={liveChatChannels}>
+            {(channel) => (
+              <li class="nav-item">
+                <A href={`/live-chat/${channel.id}`} onClick={props.onClose}>
+                  <ChatIcon class="nav-icon" />
+                  <span>{channel.name}</span>
                 </A>
               </li>
             )}

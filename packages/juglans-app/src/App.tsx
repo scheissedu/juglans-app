@@ -8,6 +8,7 @@ import Navbar from './components/Navbar/Navbar';
 import { ChatArea } from './components/chat/ChatArea';
 import ModeSelectorModal from './components/modals/ModeSelectorModal';
 import Sidebar from './components/Sidebar/Sidebar';
+import { startOnboarding, hasCompletedOnboarding } from './services/onboarding.service'; // 导入教程服务
 
 const responsiveStyles = `
   .app-layout {
@@ -39,6 +40,18 @@ const App: Component<ParentProps> = (props) => {
   const [isWideLayout, setIsWideLayout] = createSignal(window.innerWidth > 1000);
 
   let chartWrapperRef: HTMLDivElement | undefined;
+
+  // 在组件挂载后延迟触发教程
+  createEffect(() => {
+    // 确保在主内容渲染后，并且 AppContext 加载完毕后执行
+    if (!state.authLoading && props.children) {
+      setTimeout(() => {
+        if (!hasCompletedOnboarding()) {
+          startOnboarding();
+        }
+      }, 1000); // 延迟1秒，确保所有 DOM 元素都已渲染
+    }
+  });
 
   createEffect(() => {
     const brokerApi = state.brokerApi;

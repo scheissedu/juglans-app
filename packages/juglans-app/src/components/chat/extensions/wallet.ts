@@ -45,10 +45,7 @@ export function createWalletChatExtension(
               type: 'balance',
               data: balances
             });
-          } else {
-            // 如果获取后仍然没有资产，再通知用户
-            actions.sendMessage("I can't find any assets in your wallet.");
-          }
+          } 
         } catch (error) {
           console.error("Failed to fetch account balance:", error);
         }

@@ -1,29 +1,38 @@
 // packages/juglans-app/src/pages/market/AssetList.tsx
 import { Component, For, Show } from 'solid-js';
-import { SymbolInfo } from '@klinecharts/pro';
 import AssetListItem from './AssetListItem';
+import AssetListHeader from './AssetListHeader';
 import { Loading, Empty } from '@klinecharts/pro';
 import { TickerData } from '../../types';
+import { useAppContext } from '@/context/AppContext';
+import { Instrument } from '@/instruments';
 
 interface AssetListProps {
-  symbols: SymbolInfo[];
+  instruments: Instrument[];
   tickers: Record<string, TickerData>;
   loading: boolean;
-  onItemClick: (symbol: SymbolInfo) => void;
+  onItemClick: (instrument: Instrument) => void;
 }
 
 const AssetList: Component<AssetListProps> = (props) => {
+  const [state, actions] = useAppContext();
+
   return (
     <div class="asset-list-container">
       <Show when={!props.loading} fallback={<Loading />}>
-        {/* 关键修改：增加对 symbols 数组是否为空的判断 */}
-        <Show when={props.symbols.length > 0} fallback={<Empty />}>
-          <For each={props.symbols}>
-            {(symbol) => (
+        <Show when={props.instruments.length > 0} fallback={<Empty />}>
+          <AssetListHeader />
+          <For each={props.instruments}>
+            {(instrument) => (
               <AssetListItem 
-                symbol={symbol}
-                ticker={props.tickers[symbol.ticker]}
+                instrument={instrument}
+                ticker={props.tickers[instrument.getTicker()]}
                 onClick={props.onItemClick}
+                isWatched={state.watchlist.includes(instrument.getTicker())}
+                onWatchlistToggle={(e) => {
+                  e.stopPropagation();
+                  actions.toggleWatchlist(instrument.getTicker());
+                }}
               />
             )}
           </For>

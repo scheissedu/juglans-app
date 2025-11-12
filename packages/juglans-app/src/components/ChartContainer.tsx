@@ -1,30 +1,41 @@
+// packages/juglans-app/src/components/ChartContainer.tsx
 import { Component, createEffect, on, onCleanup } from 'solid-js';
 import { KLineChartPro, dispose } from '@klinecharts/pro';
 import KLineChartLight from '@klinecharts/light';
-import type { ChartPro } from '@klinecharts/pro';
+import type { ChartPro, SymbolInfo } from '@klinecharts/pro';
 import type { ChartProLight } from '@klinecharts/light';
 import { useAppContext } from '../context/AppContext';
 import UnifiedDatafeed from '../api/datafeed/UnifiedDatafeed';
+import ChartDatafeed from '../api/datafeed/ChartDatafeed'; // <-- 核心修正 1：导入新的包装器
+import { Instrument } from '@/instruments';
 
 type AnyChart = ChartPro | ChartProLight;
 
 export interface ChartContainerProps {
   mode: 'pro' | 'light';
   onChartReady: (chart: AnyChart | null) => void;
+  instrument: Instrument;
 }
 
 const ChartContainer: Component<ChartContainerProps> = (props) => {
-  console.log('[ChartContainer.tsx] Component rendering...');
+  console.log('[ChartContainer.tsx] Component rendering with instrument:', props.instrument.identifier);
 
   const [state] = useAppContext();
   let containerRef: HTMLDivElement | undefined;
   let chartInstance: AnyChart | null = null;
-  const datafeed = new UnifiedDatafeed();
+
+  // --- 核心修正 2：实例化包装器，代码更简洁 ---
+  const datafeed = new ChartDatafeed(new UnifiedDatafeed());
 
   createEffect(on(
-    () => [props.mode, state.symbol, state.period],
-    ([currentMode, currentSymbol, currentPeriod]) => {
-      console.log(`[ChartContainer.tsx] Effect triggered. Mode: ${currentMode}, Symbol: ${currentSymbol.ticker}, Period: ${currentPeriod.text}`);
+    () => [props.mode, props.instrument, state.period],
+    ([currentMode, currentInstrument, currentPeriod]) => {
+      if (!currentInstrument) {
+        console.warn('[ChartContainer.tsx] Effect triggered, but instrument prop is invalid.');
+        return;
+      }
+
+      console.log(`[ChartContainer.tsx] Effect triggered. Instrument from PROPS: ${currentInstrument.identifier}`);
       
       if (!containerRef) {
         console.error("[ChartContainer.tsx] ERROR: Container ref is not available when effect runs.");
@@ -56,13 +67,23 @@ const ChartContainer: Component<ChartContainerProps> = (props) => {
         
         console.log(`[ChartContainer.tsx] INITIALIZING new chart...`);
 
+        const symbolInfoForChart: SymbolInfo = {
+          ticker: currentInstrument.toString(),
+          name: currentInstrument.getDisplayName(),
+          shortName: currentInstrument.getDisplayName(),
+          exchange: currentInstrument.market,
+          market: currentInstrument.assetClass.toLowerCase().includes('stock') ? 'stocks' : 'crypto',
+          priceCurrency: currentInstrument.quoteCurrency,
+        };
+
+        console.log("Initial SymbolInfo for chart:", symbolInfoForChart);
+
         try {
           if (currentMode === 'pro') {
             chartInstance = new KLineChartPro({
               container: containerRef!,
-              symbol: currentSymbol,
+              symbol: symbolInfoForChart,
               period: currentPeriod,
-              // ... (rest of the properties are the same)
               datafeed: datafeed,
               brokerApi: state.brokerApi,
               theme: 'dark',
@@ -79,9 +100,10 @@ const ChartContainer: Component<ChartContainerProps> = (props) => {
           } else if (currentMode === 'light') {
             chartInstance = new KLineChartLight({
               container: containerRef!,
-              symbol: currentSymbol,
+              symbol: symbolInfoForChart,
               period: currentPeriod,
               datafeed: datafeed,
+              theme: 'dark',
               onPeriodChange: (p) => console.log('Light chart period changed to:', p),
             });
           }
@@ -91,14 +113,12 @@ const ChartContainer: Component<ChartContainerProps> = (props) => {
           console.error("[ChartContainer.tsx] FATAL: Failed to initialize chart:", e);
         }
 
-      }, 100); // 增加延迟以确保 DOM 完全准备好
+      }, 100);
 
       onCleanup(() => {
-        console.log('[ChartContainer.tsx] Cleanup: Clearing init timeout.');
         clearTimeout(initTimeout);
       });
-    }, 
-    { defer: false }
+    }
   ));
   
   onCleanup(() => {
@@ -119,10 +139,7 @@ const ChartContainer: Component<ChartContainerProps> = (props) => {
   });
 
   return (
-    <>
-      {console.log('[ChartContainer.tsx] Rendering div container...')}
-      <div ref={containerRef} style={{ width: '100%', height: '100%', "min-height": "0", "min-width": "0" }} />
-    </>
+    <div ref={containerRef} style={{ width: '100%', height: '100%', "min-height": "0", "min-width": "0" }} />
   );
 };
 

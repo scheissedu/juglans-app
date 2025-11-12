@@ -18,6 +18,7 @@ import Mention from '@tiptap/extension-mention';
 import SendIcon from '../icons/SendIcon';
 import PlusIcon from '../icons/PlusIcon';
 import RefreshIcon from '../icons/RefreshIcon';
+import SlidersIcon from '../icons/SlidersIcon';
 import RichInput from './RichInput';
 import MessageRenderer from './MessageRenderer';
 import SuggestionList, { type SuggestionItem } from './SuggestionList';
@@ -25,16 +26,19 @@ import ContextCheckboxes from './ContextCheckboxes';
 import { executeToolCall } from './tools';
 import { KLineChartPro, OrderParams, ChartPro } from '@klinecharts/pro';
 import ModelSelector, { Model } from './ModelSelector';
+import ContextSelectorModal from '../modals/ContextSelectorModal';
 
 import { BalanceSummaryView } from '@/components/cards-p/BalanceCard';
 import { KLineSummaryView } from '@/components/cards-p/KLineDataCard';
 import { PositionSummaryView } from '@/components/cards-p/PositionCard';
 import { TradeSuggestionDetailView } from '@/components/cards-p/TradeSuggestionCard';
+import { SymbolInfoSummaryView } from '@/components/cards-p/SymbolInfoCard';
 
 export interface ImageAttachment { type: 'image'; url: string; id: string; }
 export interface KLineAttachment { type: 'kline'; id: string; data: { symbol: string; period: string; data: any[] } }
 export interface PositionAttachment { type: 'position'; id: string; data: any[] }
 export interface BalanceAttachment { type: 'balance'; id: string; data: Record<string, any> }
+export interface SymbolInfoAttachment { type: 'symbolInfo'; id: string; data: any }
 export type Attachment = ImageAttachment | KLineAttachment | PositionAttachment | BalanceAttachment;
 
 export interface TextMessage {
@@ -82,10 +86,8 @@ export const ChatArea: Component = () => {
   let fileInputRef: HTMLInputElement | undefined;
 
   const [selectedModelId, setSelectedModelId] = createSignal('deepseek-chat');
-  const [marketContextChecked, setMarketContextChecked] = createSignal(true);
-  const [myContextChecked, setMyContextChecked] = createSignal(true);
-
   const [isAttachmentMenuOpen, setAttachmentMenuOpen] = createSignal(false);
+  const [isContextModalOpen, setContextModalOpen] = createSignal(false); 
   let attachmentMenuButtonRef: HTMLButtonElement | undefined;
   const [menuStyle, setMenuStyle] = createSignal({});
 
@@ -194,23 +196,7 @@ export const ChatArea: Component = () => {
     setMessages(produce(msgs => { msgs.push(thinkingMessage); }));
 
     try {
-      const extensionContext = chatExtension()?.getContext() ?? {};
-      const context: any = { 
-        symbol: state.symbol, 
-        period: state.period, 
-        ...extensionContext 
-      };
-      
-      if (myContextChecked()) {
-        context.myContext = true;
-        context.accountInfo = await state.brokerApi.getAccountInfo();
-        context.positions = await state.brokerApi.getPositions();
-      }
-
-      if(!marketContextChecked()){
-        delete context.klineData;
-        delete context.marketContext;
-      }
+      const context = await actions.buildChatContext();
       
       const apiUrl = `${import.meta.env.VITE_API_BASE_URL}/api/chat`;
 
@@ -247,13 +233,12 @@ export const ChatArea: Component = () => {
         if (aiResponse.type === 'tool_call') {
           executeToolCall(aiResponse, [state, actions], setMessages);
         } else if (aiResponse.type === 'card_response') {
-          // --- 核心修复：添加处理 my_positions 卡片的逻辑 ---
           switch (aiResponse.card_type) {
             case 'my_positions': {
               const newAttachment: PositionAttachment = {
                 type: 'position', 
                 id: `pos_${Date.now()}`,
-                data: aiResponse.card_data, // data is the array of positions
+                data: aiResponse.card_data,
               };
               const cardMessage: TextMessage = {
                 role: 'assistant', type: 'text',
@@ -402,6 +387,7 @@ export const ChatArea: Component = () => {
                               if (att.type === 'kline') return <KLineSummaryView node={{ attrs: { type: 'kline', data: att.data } }} />;
                               if (att.type === 'position') return <PositionSummaryView node={{ attrs: { type: 'position', data: att.data } }} />;
                               if (att.type === 'balance') return <BalanceSummaryView node={{ attrs: { type: 'balance', data: att.data } }} />;
+                              if (att.type === 'symbolInfo') return <SymbolInfoSummaryView node={{ attrs: { type: 'symbolInfo', data: att.data } }} />;
                               return null;
                             }
                           }</For>
@@ -447,12 +433,6 @@ export const ChatArea: Component = () => {
               )}
             </For>
           </div>
-          <ContextCheckboxes 
-            marketContextChecked={marketContextChecked()}
-            myContextChecked={myContextChecked()}
-            onMarketContextChange={setMarketContextChecked}
-            onMyContextChange={setMyContextChecked}
-          />
         </div>
         
         <div class="input-area">
@@ -467,6 +447,7 @@ export const ChatArea: Component = () => {
                     <Show when={att.type === 'kline'}><KLineSummaryView node={{ attrs: { type: 'kline', data: (att as KLineAttachment).data } }} deleteNode={() => removeAttachment(att.id)} /></Show>
                     <Show when={att.type === 'position'}><PositionSummaryView node={{ attrs: { type: 'position', data: (att as PositionAttachment).data } }} deleteNode={() => removeAttachment(att.id)} /></Show>
                     <Show when={att.type === 'balance'}><BalanceSummaryView node={{ attrs: { type: 'balance', data: (att as BalanceAttachment).data } }} deleteNode={() => removeAttachment(att.id)} /></Show>
+                    <Show when={att.type === 'symbolInfo'}><SymbolInfoSummaryView node={{ attrs: { type: 'symbolInfo', data: (att as SymbolInfoAttachment).data } }} deleteNode={() => removeAttachment(att.id)} /></Show>
                   </div>
                 )}
               </For>
@@ -510,6 +491,10 @@ export const ChatArea: Component = () => {
                 <RefreshIcon class="action-icon-small" />
               </button>
 
+              <button class="action-btn" onClick={() => setContextModalOpen(true)}>
+                <SlidersIcon class="action-icon-small" />
+              </button>
+
               <ModelSelector
                 models={AVAILABLE_MODELS}
                 selectedModelId={selectedModelId()}
@@ -527,6 +512,14 @@ export const ChatArea: Component = () => {
           </div>
         </div>
       </div>
+
+      <ContextSelectorModal
+        isOpen={isContextModalOpen()}
+        onClose={() => setContextModalOpen(false)}
+        availableContexts={state.availableContexts}
+        enabledContexts={state.enabledContexts}
+        onToggleContext={actions.toggleContextEnabled}
+      />
     </div>
   );
 };

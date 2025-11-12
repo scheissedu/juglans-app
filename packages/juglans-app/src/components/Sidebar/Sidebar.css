@@ -168,3 +168,18 @@
   width: 24px;
   height: 24px;
 }
+
+.sidebar-divider {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 16px 0;
+}
+
+.sidebar-group-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--light-gray);
+  text-transform: uppercase;
+  padding: 0 12px;
+  margin: 0 0 8px 0;
+}

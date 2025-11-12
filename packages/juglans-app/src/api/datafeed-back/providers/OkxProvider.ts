@@ -1,5 +1,3 @@
-// /klinecharts-workspace/packages/preview/src/OkxDatafeed.ts
-
 import { KLineData } from '@klinecharts/core';
 import {
   Datafeed,
@@ -9,18 +7,21 @@ import {
   DatafeedConfiguration,
   HistoryKLineDataParams
 } from '@klinecharts/pro';
+import { TickerData } from '../../../types';
 
 const API_BASE_URL = 'https://www.okx.com';
 const supportedResolutions = ['1m', '3m', '5m', '15m', '30m', '1H', '2H', '4H', '6H', '12H', '1D', '1W', '1M'];
 
-interface Subscription {
+interface CandleSubscription {
+  type: 'candle';
   channel: string;
   instId: string;
   onTick: DatafeedSubscribeCallback;
-  listenerGuid: string;
 }
 
-export default class OkxDatafeed implements Datafeed {
+type Subscription = CandleSubscription;
+
+export default class OkxProvider implements Datafeed {
   private _ws?: WebSocket;
   private _wsReady: boolean = false;
   private _heartbeatInterval: any;
@@ -31,10 +32,10 @@ export default class OkxDatafeed implements Datafeed {
   }
   
   private _connectWebSocket() {
-    this._ws = new WebSocket('wss://wspri.okx.com:8443/ws/v5/ipublic');
+    this._ws = new WebSocket('wss://wspri.okx.com:8443/ws/v5/public');
 
     this._ws.onopen = () => {
-      console.log('[OkxDatafeed] WebSocket connected.');
+      console.log('[OkxProvider] WebSocket connected.');
       this._wsReady = true;
       this._heartbeatInterval = setInterval(() => {
         if (this._ws?.readyState === WebSocket.OPEN) {
@@ -42,10 +43,12 @@ export default class OkxDatafeed implements Datafeed {
         }
       }, 25000);
       
-      const args = Array.from(this._subscriptions.values()).map(sub => ({
-        channel: sub.channel,
-        instId: sub.instId
-      }));
+      const args: any[] = [];
+      this._subscriptions.forEach(sub => {
+        if (sub.type === 'candle') {
+            args.push({ channel: sub.channel, instId: sub.instId });
+        }
+      });
       if (args.length > 0) {
         this._ws.send(JSON.stringify({ op: 'subscribe', args }));
       }
@@ -56,7 +59,7 @@ export default class OkxDatafeed implements Datafeed {
       try {
         const result = JSON.parse(event.data);
         if (result.event === 'subscribe' || result.event === 'unsubscribe') {
-          console.log(`[OkxDatafeed] WS Event: ${result.event}`, result.arg);
+          console.log(`[OkxProvider] WS Event: ${result.event}`, result.arg);
           return;
         }
 
@@ -64,8 +67,8 @@ export default class OkxDatafeed implements Datafeed {
           const candleData = result.data[0];
           const ticker = result.arg.instId;
           
-          this._subscriptions.forEach(sub => {
-            if (sub.instId === ticker && sub.channel === result.arg.channel) {
+          this._subscriptions.forEach((sub) => {
+            if (sub.type === 'candle' && sub.instId === ticker && sub.channel === result.arg.channel) {
               sub.onTick({
                 timestamp: parseInt(candleData[0], 10),
                 open: parseFloat(candleData[1]),
@@ -79,24 +82,52 @@ export default class OkxDatafeed implements Datafeed {
           });
         }
       } catch (e) {
-        console.error('[OkxDatafeed] Error parsing WebSocket message:', e);
+        console.error('[OkxProvider] Error parsing WebSocket message:', e);
       }
     };
 
     this._ws.onclose = () => {
-      console.log('[OkxDatafeed] WebSocket disconnected. Reconnecting...');
+      console.log('[OkxProvider] WebSocket disconnected. Reconnecting...');
       this._wsReady = false;
       clearInterval(this._heartbeatInterval);
       setTimeout(() => this._connectWebSocket(), 5000);
     };
 
     this._ws.onerror = (error) => {
-      console.error('[OkxDatafeed] WebSocket error:', error);
+      console.error('[OkxProvider] WebSocket error:', error);
     };
   }
   
+  async getTickers(instType: 'SPOT'): Promise<TickerData[]> {
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/v5/market/tickers?instType=${instType}`);
+        const result = await response.json();
+        if (result.code === '0' && result.data) {
+            return result.data.map((tickerRaw: any) => {
+                const lastPrice = parseFloat(tickerRaw.last);
+                const open24h = parseFloat(tickerRaw.open24h);
+                return {
+                    symbol: tickerRaw.instId,
+                    lastPrice: lastPrice,
+                    priceChange: lastPrice - open24h,
+                    priceChangePercent: open24h === 0 ? 0 : (lastPrice / open24h) - 1,
+                    volume: parseFloat(tickerRaw.vol24h),
+                    turnover: parseFloat(tickerRaw.volCcy24h),
+                };
+            });
+        }
+        return [];
+    } catch (error) {
+        console.error('[OkxProvider] Failed to fetch tickers:', error);
+        return [];
+    }
+  }
+
   onReady(callback: (configuration: DatafeedConfiguration) => void): void {
-    setTimeout(() => callback({ supported_resolutions: supportedResolutions }), 0);
+    setTimeout(() => callback({ 
+      supported_resolutions: supportedResolutions,
+      exchanges: [{ value: 'OKX', name: 'OKX', desc: 'OKX Exchange' }],
+    }), 0);
   }
 
   async searchSymbols(userInput: string, onResult: (symbols: SymbolInfo[]) => void): Promise<void> {
@@ -115,7 +146,7 @@ export default class OkxDatafeed implements Datafeed {
         onResult(symbols);
       } else { onResult([]); }
     } catch (error: any) {
-      console.error("[OkxDatafeed] Search symbols error:", error.message);
+      console.error("[OkxProvider] Search symbols error:", error.message);
       onResult([]);
     }
   }
@@ -136,7 +167,7 @@ export default class OkxDatafeed implements Datafeed {
         });
       } else { throw new Error(result.msg || 'Symbol not found'); }
     } catch (error: any) {
-      console.error(`[OkxDatafeed] Resolve symbol error for ${ticker}:`, error.message);
+      console.error(`[OkxProvider] Resolve symbol error for ${ticker}:`, error.message);
       onError(error.message);
     }
   }
@@ -148,7 +179,6 @@ export default class OkxDatafeed implements Datafeed {
     if (params.firstDataRequest) {
       url = `${API_BASE_URL}/api/v5/market/history-candles?instId=${symbol.ticker}&bar=${bar}&limit=300`;
     } else {
-      // --- 关键修复：这里使用 params.from ---
       url = `${API_BASE_URL}/api/v5/market/history-candles?instId=${symbol.ticker}&bar=${bar}&after=${params.from}&limit=100`;
     }
 
@@ -169,7 +199,7 @@ export default class OkxDatafeed implements Datafeed {
       onResult(klineData, { noData: klineData.length === 0, more: klineData.length > 0 });
 
     } catch (error: any) {
-      console.error(`[OkxDatafeed] Get history k-line error: ${error.message}`);
+      console.error(`[OkxProvider] Get history k-line error: ${error.message}`);
       onError(error.message);
     }
   }
@@ -179,23 +209,22 @@ export default class OkxDatafeed implements Datafeed {
     const instId = symbol.ticker;
     const arg = { channel, instId };
 
-    this._subscriptions.set(listenerGuid, { channel, instId, onTick, listenerGuid });
+    this._subscriptions.set(listenerGuid, { type: 'candle', channel, instId, onTick });
 
     if (this._wsReady) {
       this._ws?.send(JSON.stringify({ op: 'subscribe', args: [arg] }));
     }
-    console.log(`[OkxDatafeed] Queued subscription: ${listenerGuid} to ${channel}:${instId}`);
+    console.log(`[OkxProvider] Queued candle subscription: ${listenerGuid} to ${channel}:${instId}`);
   }
 
   unsubscribe(listenerGuid: string): void {
     const subscription = this._subscriptions.get(listenerGuid);
-    if (subscription) {
+    if (subscription && subscription.type === 'candle') {
       this._subscriptions.delete(listenerGuid);
-      console.log(`[OkxDatafeed] Unsubscribed: ${listenerGuid} from ${subscription.channel}:${subscription.instId}`);
       
       let isTickerStillSubscribed = false;
       this._subscriptions.forEach(sub => {
-        if (sub.channel === subscription.channel && sub.instId === subscription.instId) {
+        if (sub.type === 'candle' && sub.channel === subscription.channel && sub.instId === subscription.instId) {
           isTickerStillSubscribed = true;
         }
       });
@@ -203,7 +232,7 @@ export default class OkxDatafeed implements Datafeed {
       if (!isTickerStillSubscribed && this._wsReady) {
         const arg = { channel: subscription.channel, instId: subscription.instId };
         this._ws?.send(JSON.stringify({ op: 'unsubscribe', args: [arg] }));
-        console.log(`[OkxDatafeed] WebSocket unsubscribed from ${subscription.channel}:${subscription.instId}`);
+        console.log(`[OkxProvider] WebSocket unsubscribed from ${subscription.channel}:${subscription.instId}`);
       }
     }
   }

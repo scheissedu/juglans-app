@@ -184,7 +184,7 @@ const ChartProLightComponent: Component<InternalProps> = props => {
   return (
     <div class="klinecharts-light">
       <div class="klinecharts-light-header">
-        <div class="symbol">{resolvedSymbol()?.name ?? props.symbol.ticker}</div>
+        <div class="symbol">{resolvedSymbol()?.name ?? props.symbol.name ?? props.symbol.ticker}</div>
         <Show when={currentData().price && !loading() && !error()}>
           <div class="price">{currentData().price}</div>
           <div class={`change ${currentData().changeValue >= 0 ? 'up' : 'down'}`}>

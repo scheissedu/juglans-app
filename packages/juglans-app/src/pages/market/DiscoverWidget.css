@@ -1,0 +1,48 @@
+/* packages/juglans-app/src/pages/market/DiscoverWidget.css */
+
+.discover-widget-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 20px;
+  padding: 0 24px 20px;
+  flex-shrink: 0;
+}
+
+.discover-widget {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.widget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.widget-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+.widget-title::after {
+  content: ' >';
+  display: inline-block;
+  opacity: 0.5;
+}
+
+.widget-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.widget-empty {
+  color: var(--light-gray);
+  font-style: italic;
+  padding: 40px 0;
+  text-align: center;
+}

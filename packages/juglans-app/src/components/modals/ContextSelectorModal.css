@@ -1,0 +1,18 @@
+/* packages/juglans-app/src/components/modals/ContextSelectorModal.css */
+.context-selector-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 16px 0;
+}
+
+.context-selector-content .klinecharts-pro-checkbox {
+  font-size: 16px;
+  color: var(--light-gray);
+  fill: var(--light-gray);
+}
+
+.context-selector-content .klinecharts-pro-checkbox.checked {
+  color: var(--primary-highlight);
+  fill: var(--primary-highlight);
+}

@@ -26,6 +26,9 @@ const NewsListItem: Component<NewsListItemProps> = (props) => {
   const link = () => props.article.link || props.article.url || '#';
   const source = () => props.article.creator || props.article.source || 'Unknown Source';
   const date = () => props.article.pubDate || (props.article.datetime ? new Date(props.article.datetime * 1000).toISOString() : '');
+  
+  // 1. 定义一条模拟的 AI 总结
+  const mockSummary = "到2030年，稳定币和代币化现金等可编程货币预计将为金融领域带来巨大机遇。";
 
   return (
     <a 
@@ -47,6 +50,15 @@ const NewsListItem: Component<NewsListItemProps> = (props) => {
           <span class="news-list-item-time">{formatDisplayDate(date())}</span>
         </div>
         <h3 class="news-list-item-headline">{headline()}</h3>
+
+        {/* 2. 添加 AI 总结的气泡 */}
+        {/* TODO: 之后将 'true' 替换为 'props.article.aiSummary' */}
+        <Show when={true}>
+          <div class="ai-summary-bubble">
+            <img src="/deepseek.png" alt="AI" class="ai-summary-logo" />
+            <p class="ai-summary-text">{mockSummary}</p>
+          </div>
+        </Show>
       </div>
     </a>
   );

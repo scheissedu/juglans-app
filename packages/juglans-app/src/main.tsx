@@ -16,6 +16,8 @@ import JoinPage from './pages/JoinPage';
 import ProfilePage from './pages/ProfilePage';
 import WaitlistPage from './pages/WaitlistPage';
 import NewsPage from './pages/NewsPage';
+import LiveChatPage from './pages/LiveChatPage';
+import TutorialsPage from './pages/TutorialsPage'; // 导入教程页面
 
 import '@klinecharts/pro/index.less';
 import './index.css';
@@ -38,6 +40,8 @@ const Root: Component = () => {
           <Route path="/market/:symbol" component={ChartPage} />
           <Route path="/profile" component={ProfilePage} />
           <Route path="/news" component={NewsPage} />
+          <Route path="/live-chat/:username" component={LiveChatPage} />
+          <Route path="/tutorials" component={TutorialsPage} /> {/* 添加教程路由 */}
         </Route>
       </Router>
     </Show>

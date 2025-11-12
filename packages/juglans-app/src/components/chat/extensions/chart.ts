@@ -1,6 +1,6 @@
 // packages/juglans-app/src/components/chat/extensions/chart.ts
 
-import { KLineChartPro } from '@klinecharts/pro';
+import { KLineChartPro, SymbolInfo } from '@klinecharts/pro';
 import { AppContextValue, ChatExtension, QuickSuggestion } from '../../../context/AppContext';
 import { SuggestionItem } from '../SuggestionList';
 import { Component } from 'solid-js';
@@ -18,7 +18,11 @@ export function createChartChatExtension(
     const chartInstance = state.chart;
     const chart = chartInstance?.getChart();
 
-    const baseContext = { symbol: state.symbol, period: state.period };
+    const baseContext = { 
+      // 传递完整的 instrument 标识符字符串给后端
+      instrument: state.instrument.identifier,
+      period: state.period 
+    };
 
     if (!chart) {
       return baseContext;
@@ -50,13 +54,13 @@ export function createChartChatExtension(
     switch (item.key) {
       case 'add_klines': {
         const dataList = chart.getDataList();
-        const klineData = dataList.slice(-100); // 使用负数索引从数组末尾开始截取
+        const klineData = dataList.slice(-100);
         
         dispatchAttachmentEvent({
           id: `kline_${Date.now()}`,
           type: 'kline',
           data: {
-            symbol: state.symbol.shortName || state.symbol.ticker,
+            symbol: state.instrument.getDisplayName(),
             period: state.period.text,
             data: klineData
           }
@@ -64,16 +68,28 @@ export function createChartChatExtension(
         break;
       }
       case 'add_symbol': {
-        const symbolInfo = state.symbol;
-        const text = `Symbol: ${symbolInfo.shortName}\nName: ${symbolInfo.name}\nExchange: ${symbolInfo.exchange}\nType: ${symbolInfo.type}`;
-        edt.chain().focus().insertContent(text.replace(/\n/g, '<br>')).run();
+        const instrument = state.instrument;
+        // 创建一个普通的 SymbolInfo 对象，避免直接传递响应式代理
+        const symbolInfo: SymbolInfo = {
+          ticker: instrument.getTicker(),
+          name: instrument.getDisplayName(),
+          shortName: instrument.baseSymbol,
+          exchange: instrument.market,
+          market: instrument.assetClass.toLowerCase().includes('stock') ? 'stocks' : 'crypto',
+          priceCurrency: instrument.quoteCurrency,
+        };
+        dispatchAttachmentEvent({
+          id: `symbol_${Date.now()}`,
+          type: 'symbolInfo',
+          data: symbolInfo
+        });
         break;
       }
       case 'add_positions': {
         try {
           const positions = await state.brokerApi.getPositions();
           dispatchAttachmentEvent({
-            id: `pos_${Date.now()}`, // --- Added ID
+            id: `pos_${Date.now()}`,
             type: 'position',
             data: positions
           });
@@ -114,10 +130,10 @@ export function createChartChatExtension(
             const selectedData = chart.getDataList().slice(startIndex, endIndex + 1);
             
             dispatchAttachmentEvent({
-              id: `kline_${Date.now()}`, // --- Added ID
+              id: `kline_${Date.now()}`,
               type: 'kline',
               data: {
-                symbol: state.symbol.shortName || state.symbol.ticker,
+                symbol: state.instrument.getDisplayName(),
                 period: state.period.text,
                 data: selectedData
               }
@@ -130,10 +146,10 @@ export function createChartChatExtension(
       const range = chart.getVisibleRange();
       const data = chart.getDataList().slice(range.from, range.to);
       dispatchAttachmentEvent({
-        id: `kline_${Date.now()}`, // --- Added ID
+        id: `kline_${Date.now()}`,
         type: 'kline',
         data: {
-          symbol: state.symbol.shortName || state.symbol.ticker,
+          symbol: state.instrument.getDisplayName(),
           period: state.period.text,
           data: data
         }
@@ -148,16 +164,8 @@ export function createChartChatExtension(
     handleCommand,
     getQuickSuggestions: (): QuickSuggestion[] => [
       { text: "分析一下", sendImmediately: false }, 
-      { 
-        text: "我的仓位", 
-        sendText: "/card my_positions", 
-        sendImmediately: true 
-      },
-      { 
-        text: "看看市场", 
-        sendText: "/navigate market", 
-        sendImmediately: true 
-      },
+      { text: "我的仓位", sendText: "/card my_positions", sendImmediately: true },
+      { text: "看看市场", sendText: "/navigate market", sendImmediately: true },
     ],
     getAttachmentActions: () => [
       { 

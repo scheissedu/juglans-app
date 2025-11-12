@@ -24,6 +24,9 @@
     "@tiptap/extension-mention": "^2.4.0",
     "@tiptap/extension-placeholder": "^2.4.0",
     "@tiptap/starter-kit": "^2.4.0",
+    "@types/intro.js": "^5.1.5",
+    "intro.js": "^8.3.2",
+    "socket.io-client": "^4.8.1",
     "solid-js": "^1.8.17",
     "tippy.js": "^6.3.7",
     "tiptap-solid": "^1.1.2"

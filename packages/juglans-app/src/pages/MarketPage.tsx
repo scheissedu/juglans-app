@@ -1,109 +1,150 @@
-// packages/juglans-app/src/pages/MarketPage.tsx
-import { Component, createSignal, onMount, onCleanup, createMemo } from 'solid-js';
+// packages/juglans-app/src/pages/market/MarketPage.tsx
+import { Component, createSignal, onMount, onCleanup, createMemo, Accessor } from 'solid-js';
 import { useNavigate } from '@solidjs/router';
-import type { SymbolInfo } from '@klinecharts/pro';
-import UnifiedDatafeed from '../api/datafeed/UnifiedDatafeed';
+import UnifiedDatafeed from '@/api/datafeed/UnifiedDatafeed';
 import { createStore } from 'solid-js/store';
+
+import { useAppContext } from '@/context/AppContext';
+import { useEditor } from '@/context/EditorContext';
+import { createMarketChatExtension } from '@/components/chat/extensions/market';
+import { Instrument } from '@/instruments';
+
 import './MarketPage.css';
+import './market/DiscoverWidget.css';
+
 import AssetList from './market/AssetList';
-import DiscoverTags from './market/DiscoverTags';
-import type { DiscoverTag } from './market/DiscoverTags';
+import DiscoverTags, { DiscoverTag } from './market/DiscoverTags';
 import { TickerData } from '../../types';
+
+import StarIcon from '@/components/icons/StarIcon';
+import CoinIcon from '@/components/icons/CoinIcon';
+import TrendingUpIcon from '@/components/icons/TrendingUpIcon';
+import CrystalBallIcon from '@/components/icons/CrystalBallIcon';
+import SparklesIcon from '@/components/icons/SparklesIcon';
+import LightningIcon from '@/components/icons/LightningIcon';
+import RobotIcon from '@/components/icons/RobotIcon';
+import LinkIcon from '@/components/icons/LinkIcon';
+import GamepadIcon from '@/components/icons/GamepadIcon';
+import AlienIcon from '@/components/icons/AlienIcon';
 
 const datafeed = new UnifiedDatafeed();
 const POLLING_INTERVAL = 5000;
 
-const marketTags: DiscoverTag[] = [
-  { label: 'Crypto', searchTerm: 'crypto' },
-  { label: 'Stocks', searchTerm: 'stocks' },
+type MarketTag = string;
+
+const mainTags: DiscoverTag[] = [
+  { label: 'Favorites', searchTerm: 'favorites', icon: StarIcon, iconProps: { isFilled: true } },
+  { label: 'Crypto', searchTerm: 'crypto', icon: CoinIcon },
+  { label: 'Stocks', searchTerm: 'stocks', icon: TrendingUpIcon },
+  { label: 'Predict Market', searchTerm: 'predict', icon: CrystalBallIcon },
 ];
+
+const exploreTags: DiscoverTag[] = [
+  { label: 'Altcoins', searchTerm: 'altcoins', icon: AlienIcon },
+  { label: 'Newly Listed', searchTerm: 'newly-listed', icon: SparklesIcon },
+  { label: 'Daily Movers', searchTerm: 'movers', icon: LightningIcon },
+  { label: 'Technology', searchTerm: 'tech', icon: RobotIcon },
+  { label: 'DeFi', searchTerm: 'defi', icon: LinkIcon },
+  { label: 'Gaming', searchTerm: 'gaming', icon: GamepadIcon },
+];
+
 
 const MarketPage: Component = () => {
   const navigate = useNavigate();
+  const [state, actions] = useAppContext();
+  const { editor } = useEditor();
   
   const [activeTag, setActiveTag] = createSignal<MarketTag>('crypto');
-  
-  const [cryptoSymbols, setCryptoSymbols] = createSignal<SymbolInfo[]>([]);
-  const [stockSymbols, setStockSymbols] = createSignal<SymbolInfo[]>([]);
-  
+  const [cryptoInstruments, setCryptoInstruments] = createSignal<Instrument[]>([]);
+  const [stockInstruments, setStockInstruments] = createSignal<Instrument[]>([]);
   const [loading, setLoading] = createSignal(true);
-  
   const [tickers, setTickers] = createStore<Record<string, TickerData>>({});
-
   let pollingIntervalId: number;
-
-  const activeSymbols = createMemo(() => {
-    return activeTag() === 'crypto' ? cryptoSymbols() : stockSymbols();
+  
+  const activeInstruments = createMemo(() => {
+    if (activeTag() === 'stocks') {
+      return stockInstruments();
+    }
+    return cryptoInstruments();
   });
-
+  
   const fetchCryptoTickers = async () => {
-    if (activeTag() === 'crypto') {
-      try {
-        const tickerList = await datafeed.getOkxTickers();
-        const tickersMap: Record<string, TickerData> = {};
-        for (const ticker of tickerList) {
-            tickersMap[ticker.symbol] = ticker;
-        }
-        setTickers(tickersMap);
-      } catch (error) {
-        console.error("Failed to fetch tickers:", error);
-      }
+    try {
+      const tickerDataArray = await datafeed.getOkxTickers();
+      const tickerMap = tickerDataArray.reduce((acc, ticker) => {
+        acc[ticker.symbol] = ticker;
+        return acc;
+      }, {} as Record<string, TickerData>);
+      setTickers(tickerMap);
+    } catch (error) {
+      console.error("Failed to fetch real-time ticker data:", error);
     }
   };
-
+  
   onMount(() => {
+    const marketExtension = createMarketChatExtension(
+      [state, actions], 
+      editor, 
+      activeInstruments as Accessor<Instrument[]>
+    );
+    actions.setChatExtension(marketExtension);
+
     setLoading(true);
-    
-    // 同时请求加密货币和股票的初始数据
     Promise.all([
-      new Promise<SymbolInfo[]>((resolve) => {
-        datafeed.searchSymbols('USDT', 'crypto', (symbols) => {
-          const topCryptos = symbols
-            .filter(s => s.exchange === 'OKX' && s.market === 'spot')
-            .slice(0, 100); // 加载 100 个作为初始列表
-          resolve(topCryptos);
+      new Promise<Instrument[]>((resolve) => {
+        datafeed.searchSymbols('', 'crypto', (instruments) => {
+          // --- 核心修正：在这里过滤出 USDT 交易对 ---
+          const usdtInstruments = instruments.filter(inst => inst.quoteCurrency === 'USDT');
+          resolve(usdtInstruments.slice(0, 100));
         });
       }),
-      new Promise<SymbolInfo[]>((resolve) => {
-        datafeed.searchSymbols('a', 'stocks', (symbols) => {
+      new Promise<Instrument[]>((resolve) => {
+        datafeed.searchSymbols('a', 'stocks', (instruments) => {
           const topStocks = ['AAPL', 'GOOG', 'TSLA', 'MSFT', 'AMZN', 'NVDA', 'META'];
-          const filtered = symbols.filter(s => topStocks.includes(s.ticker));
+          const filtered = instruments.filter(i => topStocks.includes(i.baseSymbol));
           resolve(filtered);
         });
       })
     ]).then(([cryptos, stocks]) => {
-      setCryptoSymbols(cryptos);
-      setStockSymbols(stocks);
-      
-      fetchCryptoTickers().finally(() => {
-        setLoading(false);
-      });
-
+      setCryptoInstruments(cryptos);
+      setStockInstruments(stocks);
+      fetchCryptoTickers().finally(() => setLoading(false));
       pollingIntervalId = setInterval(fetchCryptoTickers, POLLING_INTERVAL);
     });
   });
 
   onCleanup(() => {
     clearInterval(pollingIntervalId);
+    if (state.chatExtension) {
+      actions.setChatExtension(null);
+    }
   });
 
-  const handleItemClick = (symbol: SymbolInfo) => {
-    if (symbol.ticker) {
-      navigate(`/market/${symbol.ticker}`);
+  const handleItemClick = (instrument: Instrument) => {
+    if (instrument.identifier) {
+      const encodedIdentifier = encodeURIComponent(instrument.identifier);
+      navigate(`/market/${encodedIdentifier}`);
     }
   };
 
   return (
     <div class="market-page-container">
       <DiscoverTags 
-        tags={marketTags} 
+        tags={mainTags} 
         activeTag={activeTag()}
         onTagClick={(tag) => setActiveTag(tag as MarketTag)}
       />
+      <DiscoverTags 
+        title="Explore"
+        tags={exploreTags} 
+        activeTag={activeTag()}
+        onTagClick={(tag) => setActiveTag(tag as MarketTag)}
+      />
+
       <div class="asset-list-divider" />
       <AssetList
-        symbols={activeSymbols()}
-        tickers={activeTag() === 'crypto' ? tickers : {}}
+        instruments={activeInstruments()}
+        tickers={activeTag() === 'crypto' || activeTag() === 'favorites' ? tickers : {}}
         loading={loading()}
         onItemClick={handleItemClick}
       />

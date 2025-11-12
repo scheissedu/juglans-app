@@ -2,7 +2,7 @@
 
 import { Component } from 'solid-js';
 
-export type CardType = 'tradeSuggestion' | 'kline' | 'position' | 'balance';
+export type CardType = 'tradeSuggestion' | 'kline' | 'position' | 'balance' | 'symbolInfo';
 
 export interface CardNodeData<T = any> {
   type: CardType;

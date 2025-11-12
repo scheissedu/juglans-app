@@ -3,93 +3,256 @@
 .market-page-container {
   display: flex;
   flex-direction: column;
-  height: 100%;
   box-sizing: border-box;
   color: white;
+  overflow-y: auto;
+  height: 100%;
 }
 
-/* --- Discover Tags Styles --- */
+/* --- Discover Tags Styles (核心修改) --- */
 .discover-container {
-  padding: 20px 24px 16px;
+  /* 减少垂直 padding，特别是 padding-bottom */
+  padding: 6px 24px 4px;
   flex-shrink: 0;
+}
+/* 针对第一个 discover-container，保留一些顶部间距 */
+.market-page-container > .discover-container:first-of-type {
+  padding-top: 30px;
+}
+
+
+.discover-section-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--light-gray);
+  margin: 12px 0 12px 4px;
 }
 
 .discover-tags-wrapper {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 6px;
 }
 
 .discover-tag {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: 10px;
+  padding: 6px 16px 6px 10px;
   background-color: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 999px;
-  color: var(--light-gray);
+  border-radius: 28px;
+  color: #fff;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+  transition: all 0.2s;
 }
 
 .discover-tag:hover {
   background-color: #2a2a2a;
-  border-color: #444;
+  border-color: #555;
 }
 
 .discover-tag.active {
   background-color: var(--primary-highlight);
   border-color: var(--primary-highlight);
   color: #000;
-  font-weight: 600;
+}
+.discover-tag.active .discover-tag-icon-wrapper {
+  background-color: rgba(0, 0, 0, 0.1);
+  color: #000;  /* 将图标 emoji/文字颜色设为黑色 */
+  stroke: #000; /* 将图标 SVG 描边颜色设为黑色 */
+  fill: #000;   /* 将图标 SVG 填充颜色设为黑色 */
 }
 
-.discover-tag-icon {
-  font-size: 18px;
+
+.discover-tag-icon-wrapper {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #333;
+  transition: background-color 0.2s;
 }
+.discover-tag-icon-img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+.discover-tag-icon-emoji {
+  font-size: 16px;
+}
+
+
+/* --- (其余样式保持不变) --- */
 
 /* --- Divider Style --- */
 .asset-list-divider {
   height: 1px;
-  background-color: var(--border-color);
-  margin: 0 24px 8px;
+  margin: 30px 24px 8px;
   flex-shrink: 0;
 }
 
 /* --- Asset List Styles --- */
 .asset-list-container {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
   position: relative;
-  padding: 0 24px 16px;
+  padding-left: 16px;
+  padding-right: 16px; 
+  padding-bottom: 16px;
+}
+
+.asset-list-header {
+  display: grid;
+  grid-template-columns: 3fr 1.5fr 1.5fr 1.5fr 0.5fr;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--light-gray);
+  font-weight: 500;
+  border-bottom: 1px solid var(--border-color);
+  top: 0;
+  background-color: var(--dark-bg);
+  z-index: 10;
+}
+.asset-list-header .header-chart {
+  text-align: center;
+}
+.asset-list-header .header-volume,
+.asset-list-header .header-price {
+  text-align: right;
+}
+
+.asset-list-header .header-volume,
+.asset-list-item .asset-market-info {
+  display: none;
 }
 
 .asset-list-item {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
+  grid-template-columns: 3fr 1.5fr 1.5fr 1.5fr 0.5fr; 
   align-items: center;
   gap: 16px;
-  padding: 20px 12px;
+  padding: 14px 12px;
   border-bottom: 1px solid var(--border-color);
   cursor: pointer;
   transition: background-color 0.2s;
 }
 .asset-list-item:hover { background-color: rgba(255, 255, 255, 0.03); }
+
+@media (max-width: 767px) {
+  .asset-list-header,
+  .asset-list-item {
+    grid-template-columns: 3fr 1.5fr 1.5fr 0.5fr;
+  }
+}
+
+@media (min-width: 768px) {
+  .asset-list-header,
+  .asset-list-item {
+    grid-template-columns: 3fr 1.5fr 1.5fr 1.5fr 0.5fr;
+  }
+  
+  .asset-list-header .header-volume,
+  .asset-list-item .asset-market-info {
+    display: block;
+  }
+}
+
 .asset-info { display: flex; align-items: center; gap: 12px; }
-.crypto-icon-container { width: 40px; height: 40px; flex-shrink: 0; }
+.crypto-icon-container { width: 32px; height: 32px; flex-shrink: 0; }
 .crypto-icon-image { width: 100%; height: 100%; border-radius: 50%; }
-.asset-icon-placeholder-fallback { width: 40px; height: 40px; border-radius: 50%; background-color: #333; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; color: var(--primary-highlight); }
+.asset-icon-placeholder-fallback { width: 32px; height: 32px; font-size: 16px; border-radius: 50%; background-color: #333; display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--primary-highlight); }
 .asset-names { overflow: hidden; }
-.asset-short-name { font-size: 16px; font-weight: 600; white-space: nowrap; }
-.asset-long-name { font-size: 12px; color: var(--light-gray); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mini-chart-placeholder { height: 40px; display: flex; align-items: center; justify-content: center; }
+.asset-short-name { font-size: 15px; font-weight: 500; white-space: nowrap; }
+.asset-long-name { font-size: 12px; color: var(--light-gray); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+
+.mini-chart-placeholder { 
+  height: 30px; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+}
 .sparkline { width: 100%; height: 100%; }
+
+.asset-market-info { text-align: right; }
+.asset-market-value { font-size: 14px; font-weight: 500; font-family: monospace; }
+
 .asset-price-info { text-align: right; }
-.asset-last-price { font-size: 16px; font-weight: 600; }
-.asset-change { font-size: 12px; margin-top: 4px; }
+.asset-last-price { font-size: 15px; font-weight: 500; font-family: monospace; }
+.asset-change { font-size: 12px; margin-top: 4px; font-family: monospace; }
 .asset-change.up { color: #2DC08E; }
 .asset-change.down { color: #F92855; }
+
+.asset-watchlist-action {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.watchlist-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  color: var(--light-gray);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.watchlist-btn svg {
+  width: 16px;
+  height: 16px;
+}
+.watchlist-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--primary-highlight);
+}
+.watchlist-btn.is-watched {
+  color: var(--primary-highlight);
+}
+
+.asset-list-item.variant-widget {
+  grid-template-columns: 1fr auto;
+  padding: 8px 0;
+  border-bottom: none;
+  gap: 12px;
+}
+.asset-list-item.variant-widget:hover {
+  background-color: transparent;
+}
+.asset-list-item.variant-widget .asset-price-info {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-family: monospace;
+}
+.asset-list-item.variant-widget .asset-last-price {
+  font-size: 14px;
+  font-weight: 500;
+}
+.asset-list-item.variant-widget .asset-change {
+  font-size: 14px;
+  margin-top: 0;
+}
+
+.discover-tag-icon-wrapper {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #333;
+  transition: background-color 0.2s;
+  color: #fff; /* 默认图标颜色 */
+  stroke: #fff;
+}
+.discover-tag-icon-wrapper svg {
+  width: 16px; /* 统一SVG图标大小 */
+  height: 16px;
+}
