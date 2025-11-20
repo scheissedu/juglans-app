@@ -15,11 +15,15 @@
   ],
   "rewrites": [
     {
+      "source": "/api-kalshi/(.*)",
+      "destination": "https://api.elections.kalshi.com/trade-api/v2/$1"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/ai-service/server.js"
     },
     {
-      "source": "/((?!api/|assets/).*)",
+      "source": "/((?!api/|assets/|api-kalshi/).*)",
       "destination": "/index.html"
     }
   ]
