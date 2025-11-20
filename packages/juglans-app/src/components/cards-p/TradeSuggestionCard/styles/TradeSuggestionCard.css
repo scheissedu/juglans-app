@@ -1,23 +1,95 @@
-/* packages/juglans-app/src/components/chat/cards/TradeSuggestionCard/styles/TradeSuggestionCard.css */
+/* packages/juglans-app/src/components/cards-p/TradeSuggestionCard/styles/TradeSuggestionCard.css */
 .trade-suggestion-card {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 5px;
   font-size: 14px;
   color: #f8f8f8;
   position: relative;
 }
 
+/* --- 核心修复: 重写 Header 样式 --- */
 .trade-header {
   display: flex;
+  align-items: center;
   justify-content: space-between;
+}
+
+.suggestion-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.suggestion-main-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-weight: 600;
+  color: #fff;
+}
+.suggestion-main-title .title-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--primary-highlight);
+}
+
+.suggestion-instrument-subtitle {
+  font-size: 12px;
   color: var(--light-gray);
+  font-weight: 500;
+}
+
+/* --- 核心修复: 置信度圆环样式 --- */
+.confidence-circle-container {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.tradecard-progress-circle-svg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.tradecard-progress-circle-svg circle {
+  fill: none;
+  stroke-width: 3;
+}
+.tradecard-progress-bg {
+  stroke: var(--border-color);
+}
+.tradecard-progress-fg {
+  stroke: var(--primary-highlight);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s ease;
+}
+.confidence-text-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.2;
+}
+.confidence-label {
+  font-size: 10px;
+  color: var(--light-gray);
+}
+.confidence-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
 }
 
 .trade-summary {
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 18px; /* 增大字体 */
+  font-weight: 600;
+  color: #fff;
 }
 
 .product-identifier {
@@ -65,7 +137,7 @@
 
 .advanced-options-toggle { display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 8px 0; font-size: 12px; color: var(--light-gray); font-weight: 600; border-top: 1px solid var(--border-color); margin-top: 8px; }
 .advanced-options-toggle:hover { color: #fff; }
-.advanced-options-toggle .arrow { width: 10px; height: 10px; stroke: currentColor; transition: transform 0.2s; }
+.advanced-options-toggle .arrow { width: 8px; height: 6px; stroke: currentColor; transition: transform 0.2s; fill: none; }
 .advanced-options-toggle .arrow.open { transform: rotate(180deg); }
 
 .advanced-options-content { display: flex; flex-direction: column; gap: 16px; padding: 16px; background-color: var(--input-background-color); border-radius: 8px; }
@@ -75,16 +147,24 @@
 
 .derived-info { display: flex; justify-content: space-between; font-size: 12px; color: var(--light-gray); border-top: 1px solid var(--border-color); padding-top: 12px; }
 
-.trade-actions { display: flex; gap: 12px; margin-top: 8px; }
-.trade-btn { height: 38px; font-size: 14px; font-weight: 600; margin: 0; padding: 6px 16px; border: 1px solid var(--light-gray); background: transparent; color: var(--light-gray); border-radius: 8px; cursor: pointer; }
-.trade-actions .preview-btn { margin-right: auto; }
+.trade-actions { display: flex; gap: 12px; margin-top: 16px; }
+.trade-btn { height: 38px; font-size: 14px; font-weight: 600; margin: 0; padding: 6px 16px; border: 1px solid var(--light-gray); background: transparent; color: var(--light-gray); border-radius: 8px; cursor: pointer; flex: 1; }
+.trade-actions .preview-btn { margin-right: auto; flex: 0 1 auto; }
 .trade-btn.decline:hover { border-color: #fff; color: #fff; }
 .trade-btn.place-trade { border-color: var(--primary-highlight); background-color: var(--primary-highlight); color: #000; }
 
 .trade-status { display: flex; align-items: center; justify-content: center; height: 38px; font-size: 14px; font-weight: 600; color: var(--light-gray); }
 
-.trade-disclaimer { font-size: 12px; color: var(--light-gray); text-align: center; }
-
 /* Styles for EditableValue component */
+.editable-value span { border: 1px dashed transparent; padding: 2px 4px; border-radius: 4px; }
 .editable-value span:hover { background-color: var(--input-background-color); border-color: var(--chat-border-color); }
 .editable-placeholder { color: var(--light-gray); font-style: italic; font-weight: normal; }
+
+.editable-input { background-color: var(--input-background-color); color: #f8f8f8; border: 1px solid var(--primary-highlight); border-radius: 4px; padding: 2px 5px; width: 80px; text-align: right; -moz-appearance: textfield; outline: none; box-shadow: 0 0 0 2px rgba(191, 255, 0, 0.2); }
+.editable-input::-webkit-outer-spin-button, .editable-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* Grid layouts for options and prediction markets */
+.option-grid, .prediction-grid {
+  grid-template-columns: 1.5fr 1fr 1.5fr 1.5fr;
+  align-items: baseline;
+}

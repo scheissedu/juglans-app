@@ -21,38 +21,179 @@
 }
 
 .tutorials-section {
-  margin-bottom: 40px;
+  margin-bottom: 48px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+  /* 移除 justify-content，让元素自然从左到右排列 */
 }
 
 .section-title {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 600;
-  margin: 0 0 20px 0;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--border-color);
+  margin: 0;
+  /* 关键点 1: 标题不收缩，并和右侧保持间距 */
+  flex-shrink: 0;
+  margin-right: 24px;
 }
 
-.quick-tips-grid {
+.section-header .discover-container {
+  padding: 0;
+  /* 关键点 2: 占据所有剩余空间，并允许滚动 */
+  flex: 1; /* 这是 flex-grow: 1, flex-shrink: 1, flex-basis: 0% 的简写 */
+  min-width: 0; /* 允许 flex 项收缩到小于其内容尺寸，这是 overflow 生效的关键！ */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.section-header .discover-container::-webkit-scrollbar {
+  display: none;
+}
+
+.section-header .discover-tags-wrapper {
+  gap: 8px;
+  /* 关键点 3: 标签强制不换行 */
+  flex-wrap: nowrap;
+  display: inline-flex; /* 使用 inline-flex 让容器宽度由内容决定 */
+}
+.section-header .discover-tag {
+  padding: 6px 14px;
+  font-size: 14px;
+}
+
+/* Quick Tips 横向滚动布局 */
+.tips-scroll-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-auto-flow: column;
   gap: 20px;
+  overflow-x: auto;
+  padding-bottom: 16px;
+  scrollbar-width: none;
+}
+.tips-scroll-container::-webkit-scrollbar {
+  display: none;
 }
 
-.courses-list {
+/* TipCard 样式 */
+.tip-card {
+  width: 320px; 
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  background-color: var(--card-bg);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: transform 0.2s;
+  text-decoration: none;
+  color: inherit;
+}
+.tip-card:hover {
+  transform: translateY(-4px);
+}
+.tip-card-image-wrapper {
+  background-color: white;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  --primary-svg-color: #BFFF00;
+}
+.tip-card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.tip-card-image svg {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+}
+.tip-card-content {
+  padding: 16px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+.tip-card-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+.tip-card-description {
+  font-size: 14px;
+  color: var(--light-gray);
+  margin: 0;
+  line-height: 1.5;
 }
 
-/* 临时占位符样式 */
-.tutorial-card-placeholder, .course-item-placeholder {
+/* Courses 网格布局 */
+.courses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 24px;
+}
+
+/* CourseCard 样式 */
+.course-card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
   background-color: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 20px;
-  min-height: 100px;
+  transition: border-color 0.2s;
+}
+.course-card:hover {
+  border-color: var(--primary-highlight);
+}
+.course-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+.course-card-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+.course-card-see-all {
+  font-size: 14px;
+  color: var(--primary-highlight);
+  cursor: pointer;
+}
+.course-card-unit-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.course-card-unit-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 16px;
+  color: #fff;
+}
+.unit-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: #333;
+  border: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 500;
+  flex-shrink: 0;
+}
+.unit-icon svg {
+  width: 14px;
+  height: 14px;
+  color: var(--light-gray);
 }

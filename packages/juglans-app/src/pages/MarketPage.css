@@ -9,101 +9,100 @@
   height: 100%;
 }
 
-/* --- Discover Tags Styles (核心修改) --- */
+/* --- Discover Tags Styles --- */
 .discover-container {
-  /* 减少垂直 padding，特别是 padding-bottom */
-  padding: 6px 24px 4px;
+  padding: 6px 24px;
   flex-shrink: 0;
 }
-/* 针对第一个 discover-container，保留一些顶部间距 */
 .market-page-container > .discover-container:first-of-type {
-  padding-top: 30px;
+  padding-top: 24px;
 }
-
-
 .discover-section-title {
   font-size: 14px;
   font-weight: 500;
   color: var(--light-gray);
-  margin: 12px 0 12px 4px;
+  margin: 12px 0 16px 0;
 }
-
 .discover-tags-wrapper {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 12px;
 }
-
 .discover-tag {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 16px 6px 10px;
+  gap: 8px;
+  padding: 8px 16px;
   background-color: var(--card-bg);
   border: 1px solid var(--border-color);
-  border-radius: 28px;
-  color: #fff;
+  border-radius: 999px;
+  color: var(--light-gray);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
-
 .discover-tag:hover {
-  background-color: #2a2a2a;
+  color: #fff;
   border-color: #555;
 }
-
 .discover-tag.active {
-  background-color: var(--primary-highlight);
+  color: #fff;
+  background-color: var(--card-bg);
   border-color: var(--primary-highlight);
-  color: #000;
+  box-shadow: 0 0 8px -2px var(--primary-highlight);
 }
+.discover-tag .discover-tag-icon-wrapper {
+  color: var(--light-gray);
+  stroke: var(--light-gray);
+  fill: none; /* --- 核心修改: 默认不填充SVG --- */
+}
+.discover-tag:hover .discover-tag-icon-wrapper,
 .discover-tag.active .discover-tag-icon-wrapper {
-  background-color: rgba(0, 0, 0, 0.1);
-  color: #000;  /* 将图标 emoji/文字颜色设为黑色 */
-  stroke: #000; /* 将图标 SVG 描边颜色设为黑色 */
-  fill: #000;   /* 将图标 SVG 填充颜色设为黑色 */
+  color: #fff;
+  stroke: #fff;
 }
-
-
 .discover-tag-icon-wrapper {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #333;
-  transition: background-color 0.2s;
+  transition: color 0.2s, stroke 0.2s;
 }
-.discover-tag-icon-img {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
+.discover-tag-icon-wrapper svg {
+  width: 100%;
+  height: 100%;
 }
-.discover-tag-icon-emoji {
-  font-size: 16px;
+.discover-tag-icon-wrapper .fill-current {
+  fill: currentColor; /* 为需要填充的图标添加一个类 */
 }
 
+
+/* L1 primary tags styles */
+.discover-container.variant-primary .discover-tag {
+  gap: 10px;
+}
+.discover-container.variant-primary .discover-tag.active {
+  background-color: var(--primary-highlight);
+  color: #000;
+  border-color: var(--primary-highlight);
+}
+.discover-container.variant-primary .discover-tag.active .discover-tag-icon-wrapper {
+  color: #000;
+  stroke: #000;
+}
 
 /* --- (其余样式保持不变) --- */
-
-/* --- Divider Style --- */
 .asset-list-divider {
   height: 1px;
-  margin: 30px 24px 8px;
+  margin: 24px 24px 8px;
   flex-shrink: 0;
 }
-
-/* --- Asset List Styles --- */
 .asset-list-container {
   position: relative;
-  padding-left: 16px;
-  padding-right: 16px; 
-  padding-bottom: 16px;
+  padding: 0 16px 16px; 
 }
-
 .asset-list-header {
   display: grid;
   grid-template-columns: 3fr 1.5fr 1.5fr 1.5fr 0.5fr;
@@ -114,23 +113,12 @@
   color: var(--light-gray);
   font-weight: 500;
   border-bottom: 1px solid var(--border-color);
-  top: 0;
-  background-color: var(--dark-bg);
-  z-index: 10;
 }
-.asset-list-header .header-chart {
-  text-align: center;
-}
+.asset-list-header .header-chart { text-align: center; }
 .asset-list-header .header-volume,
-.asset-list-header .header-price {
-  text-align: right;
-}
-
+.asset-list-header .header-price { text-align: right; }
 .asset-list-header .header-volume,
-.asset-list-item .asset-market-info {
-  display: none;
-}
-
+.asset-list-item .asset-market-info { display: none; }
 .asset-list-item {
   display: grid;
   grid-template-columns: 3fr 1.5fr 1.5fr 1.5fr 0.5fr; 
@@ -142,117 +130,109 @@
   transition: background-color 0.2s;
 }
 .asset-list-item:hover { background-color: rgba(255, 255, 255, 0.03); }
-
 @media (max-width: 767px) {
-  .asset-list-header,
-  .asset-list-item {
-    grid-template-columns: 3fr 1.5fr 1.5fr 0.5fr;
-  }
+  .asset-list-header, .asset-list-item { grid-template-columns: 3fr 1.5fr 1.5fr 0.5fr; }
 }
-
 @media (min-width: 768px) {
-  .asset-list-header,
-  .asset-list-item {
-    grid-template-columns: 3fr 1.5fr 1.5fr 1.5fr 0.5fr;
-  }
-  
-  .asset-list-header .header-volume,
-  .asset-list-item .asset-market-info {
-    display: block;
-  }
+  .asset-list-header, .asset-list-item { grid-template-columns: 3fr 1.5fr 1.5fr 1.5fr 0.5fr; }
+  .asset-list-header .header-volume, .asset-list-item .asset-market-info { display: block; }
 }
-
 .asset-info { display: flex; align-items: center; gap: 12px; }
 .crypto-icon-container { width: 32px; height: 32px; flex-shrink: 0; }
-.crypto-icon-image { width: 100%; height: 100%; border-radius: 50%; }
+.crypto-icon-image { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 .asset-icon-placeholder-fallback { width: 32px; height: 32px; font-size: 16px; border-radius: 50%; background-color: #333; display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--primary-highlight); }
 .asset-names { overflow: hidden; }
 .asset-short-name { font-size: 15px; font-weight: 500; white-space: nowrap; }
 .asset-long-name { font-size: 12px; color: var(--light-gray); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
-
-.mini-chart-placeholder { 
-  height: 30px; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center;
-}
+.mini-chart-placeholder { height: 30px; display: flex; align-items: center; justify-content: center; }
 .sparkline { width: 100%; height: 100%; }
-
 .asset-market-info { text-align: right; }
 .asset-market-value { font-size: 14px; font-weight: 500; font-family: monospace; }
-
 .asset-price-info { text-align: right; }
 .asset-last-price { font-size: 15px; font-weight: 500; font-family: monospace; }
 .asset-change { font-size: 12px; margin-top: 4px; font-family: monospace; }
-.asset-change.up { color: #2DC08E; }
+.asset-change.up { color: #BFFF00; }
 .asset-change.down { color: #F92855; }
-
-.asset-watchlist-action {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
+.asset-watchlist-action { display: flex; justify-content: center; align-items: center; }
 .watchlist-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 6px;
-  border-radius: 50%;
-  color: var(--light-gray);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
+  background: none; border: none; cursor: pointer; padding: 6px;
+  border-radius: 50%; color: var(--light-gray); display: flex;
+  align-items: center; justify-content: center; transition: all 0.2s;
 }
-.watchlist-btn svg {
-  width: 16px;
-  height: 16px;
-}
-.watchlist-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: var(--primary-highlight);
-}
-.watchlist-btn.is-watched {
-  color: var(--primary-highlight);
-}
+.watchlist-btn svg { width: 16px; height: 16px; }
+.watchlist-btn:hover { background-color: rgba(255, 255, 255, 0.1); color: var(--primary-highlight); }
+.watchlist-btn.is-watched { color: var(--primary-highlight); }
 
-.asset-list-item.variant-widget {
-  grid-template-columns: 1fr auto;
-  padding: 8px 0;
-  border-bottom: none;
-  gap: 12px;
+/* --- Predict Market Card Styles --- */
+.predict-event-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  padding: 0 24px;
 }
-.asset-list-item.variant-widget:hover {
-  background-color: transparent;
+.predict-event-card {
+  background-color: var(--card-bg); border: 1px solid var(--border-color);
+  border-radius: 12px; padding: 16px; display: flex;
+  flex-direction: column; gap: 12px; transition: border-color 0.2s;
 }
-.asset-list-item.variant-widget .asset-price-info {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  font-family: monospace;
+.predict-event-card:hover { border-color: var(--primary-highlight); }
+.predict-card-header { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.predict-card-image {
+  width: 32px; height: 32px; border-radius: 50%; background-color: var(--dark-bg);
+  flex-shrink: 0; display: flex; align-items: center;
+  justify-content: center; overflow: hidden; color: var(--primary-highlight);
 }
-.asset-list-item.variant-widget .asset-last-price {
-  font-size: 14px;
-  font-weight: 500;
+.predict-card-image img { width: 100%; height: 100%; object-fit: cover; }
+.predict-card-image svg { width: 20px; height: 20px; }
+.predict-card-title { font-size: 16px; font-weight: 600; margin: 0; color: #fff; }
+.predict-card-body {
+  display: flex; flex-direction: column; justify-content: center;
+  flex-grow: 1; min-height: 110px;
 }
-.asset-list-item.variant-widget .asset-change {
-  font-size: 14px;
-  margin-top: 0;
+.predict-market-row {
+  display: grid; grid-template-columns: 1fr auto auto; align-items: center;
+  gap: 16px; padding: 8px 0;
 }
-
-.discover-tag-icon-wrapper {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #333;
-  transition: background-color 0.2s;
-  color: #fff; /* 默认图标颜色 */
-  stroke: #fff;
+.market-subtitle { font-size: 16px; color: var(--light-gray); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.market-price { font-size: 16px; font-weight: 600; font-family: monospace; color: #fff; }
+.market-actions { display: flex; gap: 8px; }
+.market-actions button {
+  border: 1px solid; border-radius: 6px; padding: 8px 20px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: background-color 0.2s, color 0.2s; background-color: transparent;
 }
-.discover-tag-icon-wrapper svg {
-  width: 16px; /* 统一SVG图标大小 */
-  height: 16px;
+.single-market-body {
+  display: flex; flex-direction: row; align-items: center;
+  justify-content: space-around; width: 100%; gap: 20px;
 }
+.progress-circle-container { position: relative; display: flex; align-items: center; justify-content: center; }
+.progress-circle-svg { width: 80px; height: 80px; transform: rotate(-90deg); }
+.progress-circle-svg circle { fill: none; stroke-width: 6; }
+.progress-bg { stroke: var(--border-color); }
+.progress-fg { stroke: var(--primary-highlight); stroke-linecap: round; transition: stroke-dashoffset 0.5s ease; }
+.progress-text-content {
+  position: absolute; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.progress-text { font-size: 24px; font-weight: 700; color: #fff; }
+.progress-label { font-size: 12px; color: var(--light-gray); }
+.stacked-action-buttons { display: flex; flex-direction: column; gap: 8px; width: 100px; }
+.stacked-action-btn {
+  padding: 8px; font-size: 14px; font-weight: 600;
+  border: 1px solid; border-radius: 8px; cursor: pointer;
+  transition: background-color 0.2s, color 0.2s; background-color: transparent;
+}
+.stacked-action-btn.yes { border-color: #BFFF00; color: #BFFF00; }
+.stacked-action-btn.yes:hover { background-color: #BFFF00; color: #000; }
+.stacked-action-btn.no { border-color: #F92855; color: #F92855; }
+.stacked-action-btn.no:hover { background-color: #F92855; color: #fff; }
+.yes-btn { border-color: #BFFF00; color: #BFFF00; }
+.yes-btn:hover { background-color: #BFFF00; color: #000; }
+.no-btn { border-color: #F92855; color: #F92855; }
+.no-btn:hover { background-color: #F92855; color: #fff; }
+.predict-card-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-top: 8px; border-top: 1px solid var(--border-color);
+  font-size: 12px; color: var(--light-gray);
+}
+.footer-actions { display: flex; gap: 12px; }

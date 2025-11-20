@@ -1,8 +1,10 @@
 // packages/juglans-app/src/components/Sidebar/Sidebar.tsx
-import { Component, For, Show } from 'solid-js';
-import { A } from '@solidjs/router';
+import { Component, For, Show, createResource, onMount, onCleanup, createEffect, createSignal } from 'solid-js';
+import { A, useNavigate, useLocation } from '@solidjs/router';
 import { Portal } from 'solid-js/web';
 import { useAppContext } from '../../context/AppContext';
+import { getConversations } from '../../api/chatApi';
+import { socket } from '../live-chat/socket';
 
 import './Sidebar.css';
 import CloseIcon from '../icons/CloseIcon';
@@ -11,8 +13,9 @@ import SearchIcon from '../icons/SearchIcon';
 import ExchangeIcon from '../icons/ExchangeIcon';
 import WalletIcon from '../icons/WalletIcon';
 import NewsIcon from '../icons/NewsIcon';
-import ChatIcon from '../icons/ChatIcon'; // 1. 导入新的聊天图标
+import ChatIcon from '../icons/ChatIcon';
 import BookIcon from '../icons/BookIcon';
+import UserIcon from '../icons/UserIcon';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -23,12 +26,12 @@ const navItems = [
   { path: '/', label: 'Home', icon: HomeIcon },
   { path: '/search', label: 'Search', icon: SearchIcon },
   { path: '/market', label: 'Market', icon: ExchangeIcon },
-  { path: '/wallet', label: 'Wallet', icon: WalletIcon },
+  // --- 核心修改: Label 改为 Portfolio, 路径改为 /portfolio ---
+  { path: '/portfolio', label: 'Portfolio', icon: WalletIcon },
   { path: '/news', label: 'News', icon: NewsIcon },
   { path: '/tutorials', label: 'Tutorials', icon: BookIcon },
 ];
 
-// 2. 创建一个模拟的聊天频道列表
 const liveChatChannels = [
   { id: '@general', name: 'General' },
   { id: '@trading-ideas', name: 'Trading Ideas' },
@@ -37,8 +40,44 @@ const liveChatChannels = [
 
 const Sidebar: Component<SidebarProps> = (props) => {
   const [state] = useAppContext();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const [isLiveChatExpanded, setLiveChatExpanded] = createSignal(false);
+  const [isDmExpanded, setDmExpanded] = createSignal(false);
 
   const userInitial = () => state.user?.username.charAt(0).toUpperCase() ?? '';
+
+  const handleProfileClick = () => {
+    navigate('/profile');
+    props.onClose();
+  };
+
+  const [conversations, { refetch }] = createResource(
+    () => state.token,
+    async (token) => {
+      if (!token) return [];
+      return getConversations(token);
+    }
+  );
+
+  onMount(() => {
+    const handleDmUpdate = () => {
+      refetch();
+    };
+    socket.on('dm_update', handleDmUpdate);
+    onCleanup(() => socket.off('dm_update', handleDmUpdate));
+  });
+
+  createEffect(() => {
+    const path = location.pathname;
+    if (path.startsWith('/live-chat/dm_')) {
+      refetch();
+      setDmExpanded(true);
+    } else if (path.startsWith('/live-chat/')) {
+      setLiveChatExpanded(true);
+    }
+  });
 
   return (
     <Portal>
@@ -64,37 +103,87 @@ const Sidebar: Component<SidebarProps> = (props) => {
           </For>
         </ul>
 
-        {/* 3. 添加新的聊天列表部分 */}
         <div class="sidebar-divider" />
-        <h3 class="sidebar-group-title">Live Chat</h3>
-        <ul class="sidebar-nav-list">
-          <For each={liveChatChannels}>
-            {(channel) => (
-              <li class="nav-item">
-                <A href={`/live-chat/${channel.id}`} onClick={props.onClose}>
-                  <ChatIcon class="nav-icon" />
-                  <span>{channel.name}</span>
-                </A>
-              </li>
-            )}
-          </For>
-        </ul>
+        
+        <div class="sidebar-group-header" onClick={() => setLiveChatExpanded(!isLiveChatExpanded())}>
+          <h3 class="sidebar-group-title">Live Chat</h3>
+          <svg 
+            class={`group-arrow ${isLiveChatExpanded() ? 'expanded' : ''}`} 
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+          >
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </div>
+        
+        <Show when={isLiveChatExpanded()}>
+          <ul class="sidebar-nav-list">
+            <For each={liveChatChannels}>
+              {(channel) => (
+                <li class="nav-item">
+                  <A href={`/live-chat/${channel.id}`} onClick={props.onClose}>
+                    <ChatIcon class="nav-icon" />
+                    <span>{channel.name}</span>
+                  </A>
+                </li>
+              )}
+            </For>
+          </ul>
+        </Show>
+
+        <Show when={conversations() && conversations()!.length > 0}>
+          <div class="sidebar-divider" />
+          <div class="sidebar-group-header" onClick={() => setDmExpanded(!isDmExpanded())}>
+            <h3 class="sidebar-group-title">Direct Messages</h3>
+            <svg 
+              class={`group-arrow ${isDmExpanded() ? 'expanded' : ''}`} 
+              viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            >
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </div>
+
+          <Show when={isDmExpanded()}>
+            <ul class="sidebar-nav-list">
+              <For each={conversations()}>
+                {(conv) => (
+                  <li class="nav-item">
+                    <A href={`/live-chat/${conv.roomId}`} onClick={props.onClose}>
+                      <div style={{ width: '20px', height: '20px', "border-radius": "50%", overflow: "hidden", "background-color": "#333", display: "flex", "align-items": "center", "justify-content": "center", "flex-shrink": "0" }}>
+                        <Show when={conv.otherUser.avatar} fallback={<UserIcon class="nav-icon" />}>
+                          <img src={conv.otherUser.avatar!} style={{ width: '100%', height: '100%', "object-fit": "cover" }} />
+                        </Show>
+                      </div>
+                      <div style={{ display: 'flex', 'flex-direction': 'column', overflow: 'hidden' }}>
+                          <span style={{ "font-size": "14px" }}>{conv.otherUser.nickname || conv.otherUser.username}</span>
+                          <span style={{ "font-size": "11px", color: "var(--light-gray)", "white-space": "nowrap", "overflow": "hidden", "text-overflow": "ellipsis" }}>
+                            {conv.lastMessage}
+                          </span>
+                      </div>
+                    </A>
+                  </li>
+                )}
+              </For>
+            </ul>
+          </Show>
+        </Show>
         
         <div class="sidebar-banner" />
 
         <div class="sidebar-footer">
           <Show when={state.user} keyed>
             {(user) => (
-              <div class="user-profile">
-                <div class="user-avatar">{user.username.charAt(0).toUpperCase()}</div>
+              <div class="user-profile user-profile-clickable" onClick={handleProfileClick}>
+                <Show when={user.avatar} fallback={<div class="user-avatar">{userInitial()}</div>}>
+                  <img src={user.avatar} alt={user.username} class="user-avatar-img" />
+                </Show>
                 <div class="user-info">
-                  <div class="username">{user.username}</div>
-                  <div class="plan">Free</div>
+                  <div class="username">{user.nickname || user.username}</div>
+                  <div class="plan">Pro</div>
                 </div>
               </div>
             )}
           </Show>
-          <button class="upgrade-button" onClick={() => alert('Mock: Upgrade plan.')}>Upgrade</button>
+          <div class="pro-badge">PRO</div>
         </div>
       </nav>
     </Portal>

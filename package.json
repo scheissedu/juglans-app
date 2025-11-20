@@ -32,6 +32,8 @@
     "@tiptap/core": "^3.8.0",
     "@tiptap/extension-placeholder": "^3.8.0",
     "@tiptap/starter-kit": "^3.8.0",
+    "graphql": "^16.12.0",
+    "graphql-request": "^7.3.3",
     "tiptap-solid": "^1.2.1"
   }
 }

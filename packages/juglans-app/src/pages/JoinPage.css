@@ -9,6 +9,7 @@
   padding: 40px 20px;
   box-sizing: border-box;
   animation: fadeIn 0.8s ease-out;
+  position: relative; /* 确保 navbar 相对定位正确 */
 }
 
 @keyframes fadeIn {
@@ -20,6 +21,8 @@
   max-width: 480px;
   width: 100%;
   text-align: center;
+  /* --- 新增：给内容增加顶部间距，避开 Navbar --- */
+  margin-top: 60px; 
 }
 
 .join-logo {
@@ -27,6 +30,8 @@
   height: 64px;
   margin-bottom: 24px;
 }
+
+/* ... (其余样式保持不变) ... */
 
 .join-headline {
   font-size: 36px;

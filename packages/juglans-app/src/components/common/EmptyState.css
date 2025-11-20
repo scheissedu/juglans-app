@@ -1,10 +1,12 @@
+/* packages/juglans-app/src/components/common/EmptyState.css */
 .empty-state-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 24px;
+  padding: 80px 24px; /* 增加垂直内边距使其更居中 */
   text-align: center;
+  width: 100%;
 }
 
 .empty-state-icon {

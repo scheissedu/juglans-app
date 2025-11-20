@@ -1,3 +1,4 @@
+/* packages/juglans-app/src/pages/wallet/WalletSummary.css */
 .wallet-summary-container {
   padding: 24px;
 }
@@ -33,9 +34,39 @@
 .summary-change.up { color: #2DC08E; }
 .summary-change.down { color: #F92855; }
 
+/* New range selector styles */
+.summary-range-selector {
+  display: flex;
+  justify-content: flex-end; /* Align buttons to the right */
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.range-btn {
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--light-gray);
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.range-btn:hover {
+  background-color: var(--card-bg);
+  color: #fff;
+}
+
+.range-btn.active {
+  background-color: var(--card-bg);
+  border-color: var(--primary-highlight);
+  color: var(--primary-highlight);
+}
+
 .summary-chart {
   height: 120px;
-  margin-top: 24px;
+  margin-top: 8px; /* Reduce margin to bring chart closer to buttons */
 }
 
 /* Override klinecharts-light default styles */

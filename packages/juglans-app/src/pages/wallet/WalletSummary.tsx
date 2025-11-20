@@ -1,35 +1,21 @@
-import { Component, Show, onMount, onCleanup } from 'solid-js';
+// packages/juglans-app/src/pages/wallet/WalletSummary.tsx
+import { Component, Show, createSignal, For } from 'solid-js';
 import { AccountInfo } from '@klinecharts/pro';
-import KLineChartLight from '@klinecharts/light';
-import type { ChartProLight } from '@klinecharts/light';
+// 导入新组件
+import { KLineChartTimeSpan } from '@klinecharts/light';
 import AssetHistoryDatafeed from './AssetHistoryDatafeed';
 import './Wallet.css';
-import './WalletSummary.css'; // New CSS file for this component
+import './WalletSummary.css';
 
 const datafeed = new AssetHistoryDatafeed();
+const RANGES = ['1D', '1W', '1M', '1Y'];
 
 const WalletSummary: Component<{ accountInfo: AccountInfo | null }> = (props) => {
-  let chartContainer: HTMLDivElement | undefined;
-  let chartInstance: ChartProLight | null = null;
+  const [activeRange, setActiveRange] = createSignal('1D');
   
   const totalBalance = () => props.accountInfo?.equity ?? 0;
   const dailyChange = () => (props.accountInfo?.equity ?? 0) - (props.accountInfo?.balance ?? 0);
   const dailyChangePercent = () => (props.accountInfo?.balance ?? 0) === 0 ? 0 : (dailyChange() / props.accountInfo!.balance) * 100;
-
-  onMount(() => {
-    if (chartContainer) {
-      chartInstance = new KLineChartLight({
-        container: chartContainer,
-        symbol: 'ASSET_HISTORY',
-        period: { multiplier: 1, timespan: 'day', text: '1D' },
-        datafeed: datafeed,
-      });
-    }
-  });
-
-  onCleanup(() => {
-    chartInstance?.destroy();
-  });
 
   return (
     <div class="wallet-summary-container">
@@ -47,7 +33,31 @@ const WalletSummary: Component<{ accountInfo: AccountInfo | null }> = (props) =>
           </div>
         </Show>
       </div>
-      <div class="summary-chart" ref={chartContainer} />
+      
+      <div class="summary-range-selector">
+        <For each={RANGES}>
+          {(range) => (
+            <button
+              class="range-btn"
+              classList={{ active: activeRange() === range }}
+              onClick={() => setActiveRange(range)}
+            >
+              {range}
+            </button>
+          )}
+        </For>
+      </div>
+
+      {/* --- 核心修改：使用 KLineChartTimeSpan --- */}
+      {/* 我们只需要给一个定高的容器，组件会自动填满 */}
+      <div class="summary-chart">
+        <KLineChartTimeSpan
+          container="" // 组件内部会使用 ref，这里传空字符串即可（或者修改类型定义让它可选）
+          symbol="ASSET_HISTORY"
+          period={{ text: activeRange(), multiplier: 1, timespan: 'day' }} // 构造完整的 Period 对象
+          datafeed={datafeed}
+        />
+      </div>
     </div>
   );
 };

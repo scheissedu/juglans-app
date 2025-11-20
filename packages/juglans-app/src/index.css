@@ -1,6 +1,7 @@
 :root {
   --primary-lime: #BFFF00;
   --primary-highlight: var(--primary-lime);
+  --primary-svg-color: #BFFF00;
   --dark-bg: #121212;
   --card-bg: #1E1E1E;
   --light-gray: #A0A0A0;

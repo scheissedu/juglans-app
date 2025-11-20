@@ -22,7 +22,6 @@ import SlidersIcon from '../icons/SlidersIcon';
 import RichInput from './RichInput';
 import MessageRenderer from './MessageRenderer';
 import SuggestionList, { type SuggestionItem } from './SuggestionList';
-import ContextCheckboxes from './ContextCheckboxes';
 import { executeToolCall } from './tools';
 import { KLineChartPro, OrderParams, ChartPro } from '@klinecharts/pro';
 import ModelSelector, { Model } from './ModelSelector';
@@ -33,6 +32,7 @@ import { KLineSummaryView } from '@/components/cards-p/KLineDataCard';
 import { PositionSummaryView } from '@/components/cards-p/PositionCard';
 import { TradeSuggestionDetailView } from '@/components/cards-p/TradeSuggestionCard';
 import { SymbolInfoSummaryView } from '@/components/cards-p/SymbolInfoCard';
+import CollapseIcon from '../icons/CollapseIcon';
 
 export interface ImageAttachment { type: 'image'; url: string; id: string; }
 export interface KLineAttachment { type: 'kline'; id: string; data: { symbol: string; period: string; data: any[] } }
@@ -57,8 +57,8 @@ export interface ToolCallMessage {
 export type Message = TextMessage | ToolCallMessage;
 
 const AVAILABLE_MODELS: Model[] = [
-  { id: 'deepseek-chat', name: 'DeepSeek V2', provider: 'DeepSeek', logo: '/deepseek.png' },
-  { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash', provider: 'Google', logo: '/gemini.png' },
+  { id: 'deepseek-chat', name: 'DeepSeek V3.2', provider: 'DeepSeek', logo: '/deepseek.png' },
+  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google', logo: '/gemini.png' },
 ];
 
 export const ChatAreaProvider: Component<ParentProps> = (props) => {
@@ -74,9 +74,16 @@ export const ChatAreaProvider: Component<ParentProps> = (props) => {
   );
 };
 
-export const ChatArea: Component = () => {
+interface ChatAreaProps {
+  isExpanded: boolean;
+  onToggle: (expanded: boolean) => void;
+  isWide: boolean;
+}
+
+export const ChatArea: Component<ChatAreaProps> = (props) => {
   const { editor, setEditor } = useEditor();
   const [state, actions] = useAppContext();
+  const [isClosing, setIsClosing] = createSignal(false);
 
   const [messages, setMessages] = createStore<Message[]>([]);
   const [attachments, setAttachments] = createStore<Attachment[]>([]);
@@ -358,6 +365,17 @@ export const ChatArea: Component = () => {
     }
   });
 
+  createEffect(() => {
+    if (isClosing()) {
+      const timer = setTimeout(() => {
+        props.onToggle(false);
+        setIsClosing(false);
+      }, 300); 
+
+      onCleanup(() => clearTimeout(timer));
+    }
+  });
+
   const handleFile = (file: File) => { if (file.type.startsWith('image/')) { const reader = new FileReader(); reader.onload = e => setAttachments(produce(atts => { atts.push({ type: 'image', id: `image_${Date.now()}`, url: e.target?.result as string }) })); reader.readAsDataURL(file); } };
   const removeAttachment = (id: string) => setAttachments(produce(atts => { const index = atts.findIndex(a => a.id === id); if (index > -1) atts.splice(index, 1); }));
   const handlePaste = (e: ClipboardEvent) => e.clipboardData?.files.length && (e.preventDefault(), handleFile(e.clipboardData.files[0]));
@@ -365,55 +383,67 @@ export const ChatArea: Component = () => {
   const preventDefaults = (e: Event) => e.preventDefault();
 
   return (
-    <div class="chat-area">
-      <div class="message-list" ref={messageListRef}>
-        <Show 
-          when={messages.length > 0} 
-          fallback={null}
-        >
-          <For each={messages}>{ 
-            (message) => (
-              <Show
-                when={(message as TextMessage).thinking}
-                fallback={
-                  <Show
-                    when={message.type === 'tool_call' && message.tool_name === 'create_trade_suggestion'}
-                    fallback={
-                      <div class={`message ${message.role}-message`}>
-                        <div class="message-content">
-                          <For each={(message as TextMessage).attachments}>{
-                            att => {
-                              if (att.type === 'image') return <img src={(att as ImageAttachment).url} class="message-attachment-image" alt="attachment" />;
-                              if (att.type === 'kline') return <KLineSummaryView node={{ attrs: { type: 'kline', data: att.data } }} />;
-                              if (att.type === 'position') return <PositionSummaryView node={{ attrs: { type: 'position', data: att.data } }} />;
-                              if (att.type === 'balance') return <BalanceSummaryView node={{ attrs: { type: 'balance', data: att.data } }} />;
-                              if (att.type === 'symbolInfo') return <SymbolInfoSummaryView node={{ attrs: { type: 'symbolInfo', data: att.data } }} />;
-                              return null;
-                            }
-                          }</For>
-                          <Show when={(message as TextMessage).text}>
-                            <MessageRenderer content={(message as TextMessage).text} />
-                          </Show>
-                        </div>
-                      </div>
-                    }
-                  >
-                    <TradeSuggestionDetailView 
-                      node={{ attrs: { type: 'tradeSuggestion', data: (message as ToolCallMessage).tool_params } }}
-                    />
-                  </Show>
-                }
-              >
-                <div class="message ai-message thinking-message">
-                  <div class="dot-flashing"></div>
-                </div>
-              </Show>
-            )}
-          </For>
+    <div 
+      class="chat-area" 
+      classList={{ 
+        'is-expanded': props.isWide || props.isExpanded,
+        'is-closing': isClosing() 
+      }}
+    >
+      <div class="chat-content-area">
+        <Show when={(props.isExpanded || isClosing()) && !props.isWide}>
+          <div class="chat-header">
+            <span class="chat-title">AI Assistant</span>
+            <button class="collapse-btn action-btn" onClick={() => setIsClosing(true)}>
+              <CollapseIcon />
+            </button>
+          </div>
         </Show>
-      </div>
-      
-      <div class="input-area-wrapper" onPaste={handlePaste} onDrop={handleDrop} onDragOver={preventDefaults} onDragEnter={preventDefaults}>
+
+        <div class="message-list" ref={messageListRef}>
+          <Show when={messages.length > 0} fallback={null}>
+            <For each={messages}>{ 
+              (message) => (
+                <Show
+                  when={(message as TextMessage).thinking}
+                  fallback={
+                    <Show
+                      when={message.type === 'tool_call' && message.tool_name === 'create_trade_suggestion'}
+                      fallback={
+                        <div class={`message ${message.role}-message`}>
+                          <div class="message-content">
+                            <For each={(message as TextMessage).attachments}>{
+                              att => {
+                                if (att.type === 'image') return <img src={(att as ImageAttachment).url} class="message-attachment-image" alt="attachment" />;
+                                if (att.type === 'kline') return <KLineSummaryView node={{ attrs: { type: 'kline', data: att.data } }} />;
+                                if (att.type === 'position') return <PositionSummaryView node={{ attrs: { type: 'position', data: att.data } }} />;
+                                if (att.type === 'balance') return <BalanceSummaryView node={{ attrs: { type: 'balance', data: att.data } }} />;
+                                if (att.type === 'symbolInfo') return <SymbolInfoSummaryView node={{ attrs: { type: 'symbolInfo', data: att.data } }} />;
+                                return null;
+                              }
+                            }</For>
+                            <Show when={(message as TextMessage).text}>
+                              <MessageRenderer content={(message as TextMessage).text} />
+                            </Show>
+                          </div>
+                        </div>
+                      }
+                    >
+                      <TradeSuggestionDetailView 
+                        node={{ attrs: { type: 'tradeSuggestion', data: (message as ToolCallMessage).tool_params } }}
+                      />
+                    </Show>
+                  }
+                >
+                  <div class="message ai-message thinking-message">
+                    <div class="dot-flashing"></div>
+                  </div>
+                </Show>
+              )}
+            </For>
+          </Show>
+        </div>
+
         <div class="pre-input-wrapper">
           <div class="quick-suggestions-container">
             <For each={quickSuggestions()}>
@@ -434,7 +464,16 @@ export const ChatArea: Component = () => {
             </For>
           </div>
         </div>
-        
+      </div>
+      
+      <div 
+        class="input-area-wrapper" 
+        onPaste={handlePaste} 
+        onDrop={handleDrop} 
+        onDragOver={preventDefaults} 
+        onDragEnter={preventDefaults}
+        onClick={() => !props.isWide && !props.isExpanded && props.onToggle(true)}
+      >
         <div class="input-area">
           <div class="top-row"><RichInput /></div>
           

@@ -28,7 +28,7 @@ const NewsListItem: Component<NewsListItemProps> = (props) => {
   const date = () => props.article.pubDate || (props.article.datetime ? new Date(props.article.datetime * 1000).toISOString() : '');
   
   // 1. 定义一条模拟的 AI 总结
-  const mockSummary = "到2030年，稳定币和代币化现金等可编程货币预计将为金融领域带来巨大机遇。";
+  const mockSummary = "AI Summary Placeholder";
 
   return (
     <a 

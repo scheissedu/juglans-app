@@ -9,6 +9,18 @@ export interface TickerData {
   turnover: number;
 }
 
+// +++ 新增 RawStockInfo 类型 +++
+export interface RawStockInfo {
+  symbol: string;
+  longName: string;
+  regularMarketPrice: number;
+  regularMarketChange: number;
+  regularMarketChangePercent: number;
+  regularMarketVolume: number;
+  marketCap: number;
+}
+
+
 export interface NewsArticle {
   title: string;
   link: string;
@@ -19,9 +31,8 @@ export interface NewsArticle {
   
   tickers?: { symbol: string; changePercent: number }[];
   
-  aiSummary?: string; // 1. 为 AI 总结添加一个可选字段
+  aiSummary?: string;
 
-  // 保留旧字段为可选
   category?: string;
   datetime?: number;
   headline?: string;
@@ -31,3 +42,22 @@ export interface NewsArticle {
   summary?: string;
   url?: string;
 }
+
+export interface OptionData {
+  instrumentId: string;
+  last: number;
+  bid: number;
+  ask: number;
+  iv: number;
+  delta: number;
+  mark: number; 
+  // +++ 新增字段以匹配 OKX UI +++
+  vega: number;
+  bidSize: number;
+  askSize: number;
+}
+
+export type ProcessedOptionsChain = Map<number, {
+  call?: OptionData;
+  put?: OptionData;
+}>;

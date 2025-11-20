@@ -22,8 +22,36 @@ export default defineConfig(({ mode }) => {
     plugins: [solidPlugin()],
     server: {
       fs: { allow: ['../..'] },
-      // --- 核心修正：移除 proxy ---
-      headers: { 'Content-Security-Policy': "img-src 'self' data: https://cdn.jsdelivr.net *;" }
+      proxy: {
+        '/api-kalshi': {
+          target: 'https://api.elections.kalshi.com/trade-api/v2',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api-kalshi/, ''),
+          configure: (proxy, options) => {
+            proxy.on('proxyReq', (proxyReq, req, res) => {
+              // console.log(`[Vite Proxy] Forwarding: ${req.method} ${req.url} -> ${options.target}${proxyReq.path}`);
+            });
+            proxy.on('error', (err, req, res) => {
+              console.error('[Vite Proxy] Error:', err);
+            });
+          },
+        },
+        '/api/v1/finance': {
+          target: 'http://127.0.0.1:5000',
+          changeOrigin: true,
+          configure: (proxy, options) => {
+            proxy.on('proxyReq', (proxyReq, req, res) => {
+              // console.log(`[Vite Proxy] Forwarding to Finance API: ${req.method} ${req.url}`);
+            });
+          },
+        },
+      },
+      // --- 核心修改：CSP 允许加载多个图片源 ---
+      headers: { 
+        'Content-Security-Policy': 
+          "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com; " +
+          "img-src 'self' data: https://cdn.jsdelivr.net https://raw.githubusercontent.com https://financialmodelingprep.com *;" 
+      }
     },
     resolve: {
       alias: {

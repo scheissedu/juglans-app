@@ -34,12 +34,17 @@ export interface ContextSource {
 export interface AppContextState {
   chart: AnyChart | null;
   brokerApi: BrokerAPI;
-  instrument: Instrument; // 注意：这里不再是 Nullable
+  instrument: Instrument;
   period: Period;
   chartMode: 'pro' | 'light';
   chatExtension: ChatExtension | null;
   isAuthenticated: boolean;
-  user: { id: string; username: string } | null;
+  user: { 
+    id: string; 
+    username: string; 
+    nickname?: string; 
+    avatar?: string; 
+  } | null;
   token: string | null;
   authLoading: boolean;
   watchlist: string[];
@@ -58,7 +63,7 @@ export interface AppContextActions {
   setChatExtension: (extension: ChatExtension | null) => void;
   sendMessage: (text: string) => void;
   navigate: ReturnType<typeof useNavigate>;
-  setUser: (user: { id: string; username: string } | null, token: string | null) => void;
+  setUser: (user: { id: string; username: string; nickname?: string; avatar?: string } | null, token: string | null) => void;
   logout: () => void;
   toggleWatchlist: (ticker: string) => void;
   setAccountInfo: (info: AccountInfo | null) => void;
@@ -78,7 +83,7 @@ export const AppContextProvider: Component<ParentProps> = (props) => {
   const [state, setState] = createStore<AppContextState>({
     chart: null,
     brokerApi: null as unknown as BrokerAPI,
-    instrument: new Instrument('CRYPTO:BTC.OKX@USDT_SPOT'), // 确保有一个有效的初始值
+    instrument: new Instrument('CRYPTO:BTC.OKX@USDT_SPOT'),
     period: { multiplier: 1, timespan: 'hour', text: '1H' },
     chartMode: 'pro',
     chatExtension: null,
@@ -116,7 +121,15 @@ export const AppContextProvider: Component<ParentProps> = (props) => {
       if (user && token) {
         localStorage.setItem('authToken', token);
         localStorage.setItem('user', JSON.stringify(user));
-        window.location.href = '/';
+        setState({ isAuthenticated: true, user, token });
+        if (window.location.pathname === '/login') {
+          window.location.href = '/';
+        }
+      } else {
+        if (user) {
+            localStorage.setItem('user', JSON.stringify(user));
+            setState('user', user);
+        }
       }
     },
     logout() {
@@ -158,7 +171,7 @@ export const AppContextProvider: Component<ParentProps> = (props) => {
     },
     async buildChatContext() {
       const finalContext: Record<string, any> = {
-        instrument: state.instrument.identifier, // 发送标识符字符串
+        instrument: state.instrument.identifier,
         period: state.period,
       };
       const extensionContext = state.chatExtension?.getContext() ?? {};
@@ -181,16 +194,41 @@ export const AppContextProvider: Component<ParentProps> = (props) => {
     actions.registerContextSource(myContextSource());
     const savedWatchlist = localStorage.getItem('juglans_watchlist');
     if (savedWatchlist) setState('watchlist', JSON.parse(savedWatchlist));
+    
     const token = localStorage.getItem('authToken');
     const userStr = localStorage.getItem('user');
     let user = null;
     let finalBrokerApi: BrokerAPI;
+    
     if (token && userStr) {
-      user = JSON.parse(userStr);
+      try {
+        user = JSON.parse(userStr);
+      } catch (e) { console.error("Failed to parse user from localstorage", e); }
+    }
+    
+    if (user) {
       finalBrokerApi = new MockBrokerAPI(`klinecharts_pro_mock_broker_state_${user.id}`);
+      
+      // --- 核心修复: 初始化时同步最新的用户信息 (头像等) ---
+      fetch(`${import.meta.env.VITE_API_BASE_URL}/api/users/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      }).then(res => {
+        if (res.ok) return res.json();
+        throw new Error('Failed to fetch latest user data');
+      }).then(latestUser => {
+        console.log('[AppContext] User profile synced with server.');
+        // 只更新内存和 storage 中的 user 对象，不触发整页重定向
+        localStorage.setItem('user', JSON.stringify(latestUser));
+        setState('user', latestUser);
+      }).catch(err => {
+        console.warn('[AppContext] Failed to sync user profile:', err);
+      });
+      // ------------------------------------------------------
+
     } else {
       finalBrokerApi = new MockBrokerAPI('default_guest_key');
     }
+
     setState({
       brokerApi: finalBrokerApi,
       isAuthenticated: !!user,

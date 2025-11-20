@@ -1,8 +1,12 @@
+// packages/light/src/index.tsx
 import { render } from 'solid-js/web';
 import { Chart, KLineData, Nullable, SymbolInfo, Period } from '@klinecharts/core';
 import { ChartProLight, ChartProLightOptions } from './types';
 import ChartProLightComponent from './KLineChart.light';
 import './index.less';
+
+// --- 新增导入 ---
+import KLineChartTimeSpan from './KLineChartTimeSpan';
 
 export default class KLineChartLight implements ChartProLight {
   private _container: Nullable<HTMLElement> = null;
@@ -53,4 +57,6 @@ export default class KLineChartLight implements ChartProLight {
   }
 }
 
+// --- 核心修改：导出新组件 ---
+export { KLineChartTimeSpan };
 export * from './types';

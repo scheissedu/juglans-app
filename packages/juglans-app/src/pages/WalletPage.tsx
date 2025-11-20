@@ -1,7 +1,6 @@
 // packages/juglans-app/src/pages/WalletPage.tsx
 import { Component, onMount, onCleanup, createMemo, createSignal, Show, createEffect } from 'solid-js';
-import { useAppContext, ChatExtension, AppContextState } from '../context/AppContext';
-import { produce } from 'solid-js/store';
+import { useAppContext } from '../context/AppContext';
 import { useEditor } from '@/context/EditorContext';
 import { createWalletChatExtension } from '@/components/chat/extensions/wallet';
 
@@ -12,9 +11,11 @@ import WalletAssetList, { AggregatedAsset } from './wallet/WalletAssetList';
 import WalletPositionsList from './wallet/WalletPositionsList';
 import ReceiveModal from './wallet/ReceiveModal';
 import SendModal from './wallet/SendModal';
+import GridIcon from '@/components/icons/GridIcon'; // Reusing icons or create specific ones if needed
+import HamburgerIcon from '@/components/icons/HamburgerIcon'; // Using as "List" icon
 
 // 导入样式
-import './WalletPage.css';
+import './WalletPage.css'; // Waitlist css for reuse (if needed for global styles, but we copied card styles to Wallet.css)
 import './wallet/Wallet.css';
 
 const WalletPage: Component = () => {
@@ -22,19 +23,17 @@ const WalletPage: Component = () => {
   const { editor } = useEditor();
   
   const [activeTab, setActiveTab] = createSignal<'assets' | 'positions'>('assets');
+  // --- 新增: 视图模式状态 ---
+  const [viewMode, setViewMode] = createSignal<'list' | 'card'>('card');
+  
   const [isReceiveModalOpen, setReceiveModalOpen] = createSignal(false);
   const [isSendModalOpen, setSendModalOpen] = createSignal(false);
   const [selectedAsset, setSelectedAsset] = createSignal('USDT');
 
   const myWalletAddress = "0xAb5801a7D398351b8bE11C439e05C5B3259aeC9B";
   
-  createEffect(() => {
-    console.log('[WalletPage] state.accountInfo from context has changed:', state.accountInfo);
-  });
-
   const aggregatedAssets = createMemo((): AggregatedAsset[] => {
     const balances = state.accountInfo?.balances;
-    console.log('[WalletPage] createMemo for aggregatedAssets is re-running. Balances:', balances);
     if (!balances) return [];
 
     const mockPrices: Record<string, number> = { 
@@ -44,7 +43,6 @@ const WalletPage: Component = () => {
       'NVDA': 950.00
     };
     
-    // --- 核心修复：使用更可靠的逻辑来判断资产类型 ---
     const knownStocks = new Set(['AAPL', 'NVDA', 'TSLA', 'GOOG']);
 
     return Object.entries(balances)
@@ -97,7 +95,6 @@ const WalletPage: Component = () => {
   };
 
   onMount(() => {
-    console.log('[WalletPage] Mounting and registering wallet chat extension.');
     const walletExtension = createWalletChatExtension(
       [state, actions],
       state,
@@ -107,15 +104,15 @@ const WalletPage: Component = () => {
   });
 
   onCleanup(() => {
-    console.log('[WalletPage] Cleaning up, unregistering wallet chat extension.');
     if (state.chatExtension && state.chatExtension.getCommands().some(c => c.key === 'balance')) {
         actions.setChatExtension(null);
     }
   });
   
   return (
-    <div style={{ "height": "100%", "display": "flex", "flex-direction": "column" }}>
-      <div style={{ "overflow-y": "auto", "flex-shrink": "1" }}>
+    // --- 核心修改: 使用 portfolio-page-container 实现整页滚动 ---
+    <div class="portfolio-page-container">
+      <div class="portfolio-header-section">
         <WalletSummary accountInfo={state.accountInfo} />
         
         <WalletActions 
@@ -125,19 +122,43 @@ const WalletPage: Component = () => {
         />
       </div>
       
-      <div class="wallet-tabs">
-        <button class={`tab-item ${activeTab() === 'assets' ? 'active' : ''}`} onClick={() => setActiveTab('assets')}>
-          Assets
-        </button>
-        <button class={`tab-item ${activeTab() === 'positions' ? 'active' : ''}`} onClick={() => setActiveTab('positions')}>
-          Positions
-        </button>
+      {/* --- 核心修改: 控制栏 (Tab + Toggle) --- */}
+      <div class="portfolio-controls">
+        <div class="wallet-tabs">
+          <button class={`tab-item ${activeTab() === 'assets' ? 'active' : ''}`} onClick={() => setActiveTab('assets')}>
+            Assets
+          </button>
+          <button class={`tab-item ${activeTab() === 'positions' ? 'active' : ''}`} onClick={() => setActiveTab('positions')}>
+            Positions
+          </button>
+        </div>
+
+        {/* 仅在 Assets Tab 显示切换按钮 */}
+        <Show when={activeTab() === 'assets'}>
+          <div class="view-toggle-pill">
+             <button 
+               class="view-toggle-btn" 
+               classList={{ active: viewMode() === 'card' }}
+               onClick={() => setViewMode('card')}
+             >
+               <GridIcon /> Card
+             </button>
+             <button 
+               class="view-toggle-btn" 
+               classList={{ active: viewMode() === 'list' }}
+               onClick={() => setViewMode('list')}
+             >
+               <HamburgerIcon /> List
+             </button>
+          </div>
+        </Show>
       </div>
       
-      <div style={{"flex": "1", "min-height": "0", "position": "relative"}}>
+      <div class="asset-content-container">
         <Show when={activeTab() === 'assets'}>
           <WalletAssetList 
             assets={aggregatedAssets()}
+            viewMode={viewMode()} // 传入视图模式
             onSend={handleOpenSend}
             onReceive={handleOpenReceive}
           />

@@ -2,11 +2,10 @@
 import { Component, createSignal, Show, on, createEffect, createMemo } from 'solid-js';
 import '@/pages/MarketPage.css';
 
-// 1. 定义图标仓库的基础 URL
 const CRYPTO_ICON_BASE_URL = 'https://raw.githubusercontent.com/nvstly/icons/main/crypto_icons/';
-const STOCK_ICON_BASE_URL = 'https://raw.githubusercontent.com/nvstly/icons/main/stock_icons/';
+const US_STOCK_ICON_BASE_URL = 'https://raw.githubusercontent.com/nvstly/icons/main/ticker_icons/';
+const FMP_ICON_BASE_URL = 'https://financialmodelingprep.com/image-stock/';
 
-// 全局缓存，避免重复的网络请求
 const iconCache = new Map<string, 'loading' | 'error' | string>();
 
 interface AssetIconProps {
@@ -20,17 +19,23 @@ const AssetIcon: Component<AssetIconProps> = (props) => {
   const assetSymbol = () => props.symbol.toUpperCase();
   const type = () => props.assetType ?? 'crypto';
 
-  // 2. 使用 createMemo 动态构建完整的图标 URL
   const imageUrl = createMemo(() => {
+    const sym = assetSymbol();
+    
     if (type() === 'stock') {
-      return `${STOCK_ICON_BASE_URL}${assetSymbol()}.png`;
+      // 核心逻辑：如果是 A股 (.SS/.SZ) 或 港股 (.HK)，使用 FMP 数据源
+      if (sym.endsWith('.SS') || sym.endsWith('.SZ') || sym.endsWith('.HK')) {
+        return `${FMP_ICON_BASE_URL}${sym}.png`;
+      }
+      // 美股及其他默认使用 nvstly 源
+      return `${US_STOCK_ICON_BASE_URL}${sym}.png`;
     }
-    // 默认是 crypto
-    return `${CRYPTO_ICON_BASE_URL}${assetSymbol()}.png`;
+    
+    // 加密货币
+    return `${CRYPTO_ICON_BASE_URL}${sym}.png`;
   });
 
   createEffect(on(() => imageUrl(), (url) => {
-    // 每次 URL 变化时（即 symbol 或 type 变化时），执行此逻辑
     const cachedStatus = iconCache.get(url);
 
     if (cachedStatus && cachedStatus !== 'loading') {
@@ -41,22 +46,16 @@ const AssetIcon: Component<AssetIconProps> = (props) => {
     setSource('loading');
     iconCache.set(url, 'loading');
 
-    // 预加载图片
     const img = new Image();
     img.onload = () => {
-      iconCache.set(url, url); // 缓存成功的 URL
-      // 检查当前组件是否仍在等待这个 URL 的结果
-      if (imageUrl() === url) {
-        setSource(url);
-      }
+      iconCache.set(url, url);
+      if (imageUrl() === url) setSource(url);
     };
     img.onerror = () => {
-      iconCache.set(url, 'error'); // 缓存错误状态
-      if (imageUrl() === url) {
-        setSource('error');
-      }
+      iconCache.set(url, 'error');
+      if (imageUrl() === url) setSource('error');
     };
-    img.src = url; // 触发加载
+    img.src = url;
   }));
 
   return (
@@ -72,7 +71,6 @@ const AssetIcon: Component<AssetIconProps> = (props) => {
         }
       >
         <div class="asset-icon-placeholder-fallback">
-          {/* 在加载中或失败时显示首字母 */}
           {assetSymbol().charAt(0)}
         </div>
       </Show>

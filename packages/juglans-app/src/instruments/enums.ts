@@ -3,8 +3,9 @@
 export enum AssetClass {
   CRYPTO = 'CRYPTO',
   US_STOCK = 'US_STOCK',
-  HK_STOCK = 'HK_STOCK',
-  PREDICTION = 'PREDICTION', // For future use
+  HK_STOCK = 'HK_STOCK', // 新增：港股
+  CN_STOCK = 'CN_STOCK', // 新增：A股
+  PREDICTION = 'PREDICTION',
   UNKNOWN = 'UNKNOWN',
 }
 
@@ -13,6 +14,6 @@ export enum ProductType {
   PERP = 'PERP',
   FUTURES = 'FUTURES',
   OPTION = 'OPTION',
-  BINARY = 'BINARY', // For future use
+  BINARY = 'BINARY', 
   UNKNOWN = 'UNKNOWN',
 }

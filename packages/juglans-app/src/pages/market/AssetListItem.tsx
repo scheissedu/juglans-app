@@ -1,10 +1,14 @@
 // packages/juglans-app/src/pages/market/AssetListItem.tsx
-import { Component, Show } from 'solid-js';
+import { Component, Show, createResource } from 'solid-js';
 import { TickerData } from '@/types';
 import { Instrument } from '@/instruments';
 import '../MarketPage.css';
 import AssetIcon from '@/components/icons/AssetIcon';
 import StarIcon from '@/components/icons/StarIcon';
+import Sparkline from '@/components/common/Sparkline';
+import UnifiedDatafeed from '@/api/datafeed/UnifiedDatafeed';
+
+const datafeed = new UnifiedDatafeed();
 
 interface AssetListItemProps {
   instrument: Instrument;
@@ -24,10 +28,10 @@ const formatMarketValue = (value: number | undefined) => {
   return `$${value.toFixed(2)}`;
 };
 
-
 const AssetListItem: Component<AssetListItemProps> = (props) => {
+  // 获取处理过默认值的 variant
   const variant = () => props.variant ?? 'list';
-
+  
   const lastPrice = () => props.ticker?.lastPrice;
   const changePercent = () => props.ticker?.priceChangePercent ?? 0;
   
@@ -36,6 +40,26 @@ const AssetListItem: Component<AssetListItemProps> = (props) => {
     if (assetClassStr.includes('STOCK')) return 'stock';
     return 'crypto';
   };
+
+  const trendColor = () => changePercent() >= 0 ? '#2DC08E' : '#F92855';
+
+  // --- 核心修复：使用 variant() 函数而不是 props.variant ---
+  const [sparklineData] = createResource(
+    () => {
+      // 1. 必须是列表模式 (variant() 会返回 'list' 默认值)
+      // 2. 必须是股票类型 (加密货币暂时不请求)
+      if (variant() === 'list' && assetType() === 'stock') {
+        return props.instrument.baseSymbol;
+      }
+      return null;
+    },
+    async (symbol) => {
+      if (!symbol) return [];
+      // 添加一点随机延迟，避免并发请求过多导致浏览器阻塞
+      await new Promise(r => setTimeout(r, Math.random() * 500)); 
+      return datafeed.getSparklineData(symbol);
+    }
+  );
 
   return (
     <div 
@@ -55,9 +79,22 @@ const AssetListItem: Component<AssetListItemProps> = (props) => {
       
       <Show when={variant() === 'list'}>
         <div class="mini-chart-placeholder">
-          <svg viewBox="0 0 100 30" class="sparkline">
-              <path d="M0,15 L10,20 L20,10 L30,18 L40,12 L50,22 L60,15 L70,10 L80,25 L90,18 L100,15" fill="none" stroke={changePercent() >= 0 ? '#2DC08E' : '#F92855'} stroke-width="2"/>
-          </svg>
+          <Show 
+            when={!sparklineData.loading && sparklineData() && sparklineData()!.length > 0}
+            fallback={
+               // 加载中的占位符
+               <div style={{ width: '100%', height: '2px', "background-color": "var(--border-color)", opacity: 0.3 }} />
+            }
+          >
+            {/* Sparkline 容器 */}
+            <div style={{ width: '100%', height: '100%', "padding": "2px 0" }}>
+              <Sparkline 
+                data={sparklineData()!} 
+                color={trendColor()} 
+                strokeWidth={2}
+              />
+            </div>
+          </Show>
         </div>
       </Show>
 

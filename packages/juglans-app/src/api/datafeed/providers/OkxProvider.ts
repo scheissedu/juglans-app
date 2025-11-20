@@ -3,7 +3,7 @@
 import { KLineData } from '@klinecharts/core';
 import { Datafeed, Period, DatafeedSubscribeCallback, DatafeedConfiguration, HistoryKLineDataParams } from '@klinecharts/pro';
 import { Instrument, AssetClass, ProductType } from '@/instruments';
-import { TickerData } from '../../../types';
+import { TickerData, OptionData, ProcessedOptionsChain } from '../../../types';
 
 const API_BASE_URL = 'https://www.okx.com';
 const supportedResolutions = ['1m', '3m', '5m', '15m', '30m', '1H', '2H', '4H', '6H', '12H', '1D', '1W', '1M'];
@@ -100,17 +100,69 @@ export default class OkxProvider implements Datafeed {
         if (result.code === '0' && result.data) {
             return result.data.map((tickerRaw: any) => ({
                 symbol: tickerRaw.instId,
-                lastPrice: parseFloat(tickerRaw.last),
-                priceChange: parseFloat(tickerRaw.last) - parseFloat(tickerRaw.open24h),
-                priceChangePercent: parseFloat(tickerRaw.open24h) === 0 ? 0 : (parseFloat(tickerRaw.last) / parseFloat(tickerRaw.open24h)) - 1,
-                volume: parseFloat(tickerRaw.vol24h),
-                turnover: parseFloat(tickerRaw.volCcy24h),
+                lastPrice: parseFloat(tickerRaw.last || "0"),
+                priceChange: parseFloat(tickerRaw.last || "0") - parseFloat(tickerRaw.open24h || "0"),
+                priceChangePercent: parseFloat(tickerRaw.open24h || "0") === 0 ? 0 : (parseFloat(tickerRaw.last || "0") / parseFloat(tickerRaw.open24h || "0")) - 1,
+                volume: parseFloat(tickerRaw.vol24h || "0"),
+                turnover: parseFloat(tickerRaw.volCcy24h || "0"),
             }));
         }
         return [];
     } catch (error) {
         console.error('[OkxProvider] Failed to fetch tickers:', error);
         return [];
+    }
+  }
+
+  // +++ 核心修复：重写此方法以合并两个API的数据 +++
+  async getRawOptionsData(underlying: string): Promise<any[]> {
+    const instFamily = `${underlying}-USD`;
+    const tickersUrl = `${API_BASE_URL}/api/v5/market/tickers?instType=OPTION&instFamily=${instFamily}`;
+    const summaryUrl = `${API_BASE_URL}/api/v5/public/opt-summary?instFamily=${instFamily}`;
+
+    try {
+      console.log('[OkxProvider] Fetching options data from Tickers and Summary endpoints...');
+      const [tickersResponse, summaryResponse] = await Promise.all([
+        fetch(tickersUrl),
+        fetch(summaryUrl),
+      ]);
+
+      const tickersResult = await tickersResponse.json();
+      const summaryResult = await summaryResponse.json();
+
+      if (tickersResult.code !== '0' || !tickersResult.data) {
+        throw new Error(`Failed to fetch tickers: ${tickersResult.msg}`);
+      }
+      if (summaryResult.code !== '0' || !summaryResult.data) {
+        throw new Error(`Failed to fetch summary: ${summaryResult.msg}`);
+      }
+      
+      console.log(`[OkxProvider] Fetched ${tickersResult.data.length} tickers and ${summaryResult.data.length} summaries.`);
+
+      // 使用 Map 来高效地合并数据
+      const mergedData = new Map<string, any>();
+
+      // 1. 首先用 Tickers API 的价格数据填充 Map
+      for (const ticker of tickersResult.data) {
+        mergedData.set(ticker.instId, { ...ticker });
+      }
+
+      // 2. 然后用 Summary API 的希腊字母数据来丰富 Map
+      for (const summary of summaryResult.data) {
+        const existingData = mergedData.get(summary.instId);
+        if (existingData) {
+          // Object.assign 会将 summary 的所有属性添加或覆盖到 existingData 上
+          Object.assign(existingData, summary);
+        }
+      }
+      
+      const finalData = Array.from(mergedData.values());
+      console.log(`[OkxProvider] Merged into ${finalData.length} complete option objects.`);
+      return finalData;
+
+    } catch (error: any) {
+      console.error(`[OkxProvider] Get Raw Options Data error: ${error.message}`);
+      throw error;
     }
   }
 

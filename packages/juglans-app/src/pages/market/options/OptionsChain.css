@@ -1,0 +1,156 @@
+/* packages/juglans-app/src/pages/market/options/OptionsChain.css */
+.options-chain-container {
+  padding: 0 24px;
+  /* --- 核心修复 1: 移除 flex 布局和高度限制 --- */
+  /* display: flex; (移除) */
+  /* flex-direction: column; (移除) */
+  /* height: 100%; (移除) */
+  /* 这会让该组件在垂直方向上根据内容自然伸展，从而将垂直滚动交由父级处理 */
+}
+
+.options-chain-header {
+  margin-bottom: 20px;
+  flex-shrink: 0;
+}
+
+.expiry-selector-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 12px;
+}
+
+.instrument-family-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 10px 16px;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.instrument-family-selector svg {
+  width: 16px;
+  height: 16px;
+  color: var(--light-gray);
+}
+
+.expiry-selector {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  overflow-x: auto;
+  border-bottom: none;
+  flex-grow: 1;
+  /* Hide scrollbar */
+  scrollbar-width: none; /* Firefox */
+}
+.expiry-selector::-webkit-scrollbar {
+  display: none; /* Safari and Chrome */
+}
+
+.expiry-tab {
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--light-gray);
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.expiry-tab:hover {
+  background-color: var(--card-bg);
+  color: #fff;
+}
+
+.expiry-tab.active {
+  background-color: var(--card-bg);
+  border-color: var(--primary-highlight);
+  color: var(--primary-highlight);
+}
+
+.options-chain-grid-wrapper {
+  overflow-x: auto; /* 保留这一行，它负责独立的水平滚动 */
+  /* --- 核心修复 2: 移除 flex-grow --- */
+  /* flex-grow: 1; (移除) */
+  /* 移除后，此容器的高度将由其内容（表格）决定，不会再捕获垂直滚动事件 */
+}
+
+.options-chain-grid {
+  display: grid;
+  grid-template-columns: 7fr 1.5fr 7fr;
+  width: 100%;
+  font-size: 14px;
+}
+
+.options-chain-row, .options-chain-grid-header {
+  display: contents;
+}
+
+.options-chain-grid-header .header-cell {
+  color: var(--light-gray);
+  font-weight: 500;
+  padding: 10px 8px;
+  text-align: right;
+  position: sticky;
+  top: 0; /* 注意：这个 sticky 效果现在是相对于 .market-page-container 的滚动而言 */
+  background-color: var(--dark-bg);
+  z-index: 1;
+}
+.options-chain-grid-header .header-cell:first-child {
+  text-align: left;
+}
+.options-chain-grid-header .header-cell.strike-header {
+  text-align: center;
+  font-size: 16px;
+}
+
+.calls-header, .puts-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.strike-price-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 16px;
+  background-color: rgba(255, 255, 255, 0.03);
+  margin: 2px 0;
+}
+
+.call-option-cells, .put-option-cells {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin: 2px 0;
+  background-color: transparent;
+  transition: background-color 0.2s;
+}
+
+.options-chain-row:hover .call-option-cells,
+.options-chain-row:hover .put-option-cells,
+.options-chain-row:hover .strike-price-cell {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.option-cell {
+  padding: 10px 8px;
+  text-align: right;
+  font-family: monospace;
+}
+.option-cell:first-child {
+  text-align: left;
+}
+.option-cell.bid-price { color: #2DC08E; } /* Green for bid */
+.option-cell.ask-price { color: #F92855; } /* Red for ask */

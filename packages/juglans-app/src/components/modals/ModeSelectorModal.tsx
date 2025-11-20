@@ -1,3 +1,4 @@
+// packages/juglans-app/src/components/modals/ModeSelectorModal.tsx
 import { Component, Show, type Accessor } from 'solid-js';
 import { Portal } from 'solid-js/web';
 import { useNavigate } from '@solidjs/router';
@@ -31,11 +32,12 @@ const ModeSelectorModal: Component<ModeSelectorModalProps> = (props) => {
               <div class={styles.description}>Advanced trading tools</div>
             </div>
           </div>
-          <div class={styles.option} onClick={() => handleNavigate('/wallet')}>
+          {/* --- 核心修改: 跳转到 /portfolio --- */}
+          <div class={styles.option} onClick={() => handleNavigate('/portfolio')}>
             <div class={styles.iconContainer}><WalletIcon /></div>
             <div class={styles.textContainer}>
-              <div class={styles.title}>Wallet</div>
-              <div class={styles.description}>Decentralized wallet</div>
+              <div class={styles.title}>Portfolio</div>
+              <div class={styles.description}>Manage your assets</div>
             </div>
           </div>
         </div>

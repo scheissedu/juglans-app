@@ -1,58 +1,39 @@
-/* --- Wallet Summary Card (styles moved to WalletSummary.css) --- */
+/* packages/juglans-app/src/pages/wallet/Wallet.css */
 
-/* --- Wallet Actions (styles exist but component is hidden) --- */
-.wallet-actions-container {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 16px;
-  padding: 0 24px;
-  margin-bottom: 24px;
-}
-.wallet-action-btn {
+/* --- 核心修改：整页滑动容器 --- */
+.portfolio-page-container {
   display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto; /* 整页滑动 */
+  padding-bottom: 40px; /* 底部留白 */
+  background-color: var(--dark-bg);
+}
+
+/* 顶部区域 (Summary + Actions) */
+.portfolio-header-section {
+  flex-shrink: 0;
+}
+
+/* --- 控制栏 (Tabs + View Toggle) --- */
+.portfolio-controls {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  justify-content: center;
-  gap: 8px;
-  height: 48px;
-  border-radius: 8px;
-  border: none;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  padding: 0 8px;
-}
-.wallet-action-btn svg {
-  width: 20px;
-  height: 20px;
-}
-.wallet-action-btn.send {
-  background-color: rgba(249, 40, 85, 0.15);
-  color: #F92855;
-}
-.wallet-action-btn.send:hover { background-color: rgba(249, 40, 85, 0.25); }
-.wallet-action-btn.receive {
-  background-color: rgba(45, 192, 142, 0.15);
-  color: #2DC08E;
-}
-.wallet-action-btn.receive:hover { background-color: rgba(45, 192, 142, 0.25); }
-.wallet-action-btn.mock-deposit {
-  background-color: var(--card-bg);
-  color: var(--primary-highlight);
-  border: 1px dashed var(--border-color);
-}
-.wallet-action-btn.mock-deposit:hover {
-  background-color: #2a2a2a;
+  padding: 0 24px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+  position: sticky; /* 吸顶效果 */
+  top: 0;
+  background-color: var(--dark-bg);
+  z-index: 10;
 }
 
-
-/* --- Tabs --- */
+/* Tabs */
 .wallet-tabs {
   display: flex;
   gap: 24px;
-  padding: 0 24px;
-  border-bottom: 1px solid var(--border-color);
-  flex-shrink: 0;
+  border-bottom: none; /* 移除了原来的 border，由 parent 处理 */
 }
 .tab-item {
   padding: 12px 4px;
@@ -71,209 +52,192 @@
   border-bottom-color: var(--primary-highlight);
 }
 
-/* --- Wallet Asset List --- */
-.wallet-asset-list-container {
-  padding: 0;
-  height: 100%;
-  overflow-y: auto;
+/* --- 新增：药丸切换按钮 (Pill Switch) --- */
+.view-toggle-pill {
+  display: flex;
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 2px;
 }
-.wallet-list-header {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap: 16px;
-  padding: 12px 24px;
-  font-size: 12px;
+.view-toggle-btn {
+  background: none;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 999px;
   color: var(--light-gray);
-  font-weight: 500;
-  border-bottom: 1px solid var(--border-color);
-  position: sticky;
-  top: 0;
-  background-color: var(--dark-bg);
-  z-index: 1;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
-.wallet-list-header span:nth-child(2),
-.wallet-list-header span:nth-child(3) {
-  text-align: right;
+.view-toggle-btn:hover {
+  color: #fff;
 }
-.wallet-list-header span:nth-child(4) {
-  text-align: center;
+.view-toggle-btn.active {
+  background-color: var(--primary-highlight);
+  color: #000;
+}
+.view-toggle-btn svg {
+  width: 14px;
+  height: 14px;
 }
 
-/* Wallet Asset List Item */
+/* --- 列表/卡片 容器 --- */
+.asset-content-container {
+  padding: 0 24px;
+}
+
+/* --- List View Styles --- */
+/* (原有的列表样式，保留但稍作调整) */
+.wallet-list-header {
+  /* 隐藏表头，因为需求说暂时去掉，但保留 CSS 以备后用或仅作为结构参考 */
+  display: none; 
+}
+
 .wallet-asset-item {
   display: grid;
   grid-template-columns: 2fr 1fr 1fr 1fr;
   align-items: center;
   gap: 16px;
-  padding: 16px 24px;
+  padding: 16px 0; /* 移除左右 padding，因为外层容器有了 */
   border-bottom: 1px solid var(--border-color);
 }
-.wallet-asset-item:last-child {
-  border-bottom: none;
-}
-.wallet-asset-item:hover {
-  background-color: rgba(255, 255, 255, 0.03);
-}
-.wallet-asset-item .asset-balance,
-.wallet-asset-item .asset-available {
-  text-align: right;
-  font-family: monospace;
-}
-.wallet-asset-item .asset-usd-value {
-  font-size: 12px;
-  color: var(--light-gray);
-  margin-top: 4px;
-}
-.asset-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-}
-.asset-actions button {
-  background: none;
-  border: 1px solid var(--border-color);
-  color: var(--light-gray);
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
-}
-.asset-actions button:hover {
-  background-color: var(--border-color);
-  color: #fff;
-}
+.wallet-asset-item:last-child { border-bottom: none; }
+/* ... 其他 list 样式保持不变 ... */
 
-/* --- Positions Tab Styles --- */
-.wallet-table-container {
-  height: 100%;
-  overflow-y: auto;
-  position: relative;
-}
-.wallet-table-container .klinecharts-pro-table {
-    border-radius: 0;
-    border: none;
-    background-color: transparent;
-}
-.wallet-table-container .klinecharts-pro-table .table-header {
-    background-color: var(--dark-bg);
-    position: sticky;
-    top: 0;
-    z-index: 1;
-}
-.side-long { color: #2DC08E; }
-.side-short { color: #F92855; }
-.pnl-up { color: #2DC08E; }
-.pnl-down { color: #F92855; }
-.position-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-}
-.position-actions button {
-  background: none; border: none; cursor: pointer; color: var(--light-gray);
-}
 
-/* --- Receive Modal Styles --- */
-.receive-modal-content, .send-modal-content {
-  display: flex;
-  flex-direction: column;
+/* --- Card View Styles (复用 Waitlist 风格) --- */
+.asset-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
 }
-.form-group {
+
+.asset-card {
+  background: linear-gradient(145deg, #1E1E1E 0%, #151515 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-.form-group label {
-  font-size: 14px;
-  color: var(--light-gray);
-  font-weight: 500;
-}
-.wallet-input, .wallet-select {
-  background-color: var(--dark-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  height: 44px;
-  padding: 0 16px;
-  color: #fff;
-  font-size: 16px;
-}
-.wallet-input:focus, .wallet-select:focus {
-  outline: none;
-  border-color: var(--primary-highlight);
-}
-.wallet-submit-btn {
-  height: 48px;
-  border-radius: 8px;
-  background-color: var(--primary-highlight);
-  color: #000;
-  border: none;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.wallet-submit-btn:disabled {
-  background-color: #555;
-  color: #888;
-  cursor: not-allowed;
+  transition: transform 0.2s, border-color 0.2s;
 }
 
-/* --- Send/Receive Modal Specifics --- */
-.receive-modal-content {
-  align-items: center;
+.asset-card:hover {
+  border-color: rgba(255, 255, 255, 0.2);
 }
-.qr-code-wrapper {
-  background-color: white;
-  padding: 16px;
-  border-radius: 8px;
+
+.asset-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(191, 255, 0, 0.5), transparent);
 }
-.receive-instructions {
-  font-size: 14px;
-  color: var(--light-gray);
-  text-align: center;
-  max-width: 300px;
-  margin: 0;
-}
-.address-display {
+
+.asset-card-header {
   display: flex;
   align-items: center;
-  width: 100%;
-  background-color: var(--dark-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-family: monospace;
-  font-size: 14px;
+  gap: 12px;
+  margin-bottom: 16px;
 }
-.address-display span {
+
+.card-icon-wrapper {
+  width: 40px; height: 40px;
+  /* border-radius: 50%; (AssetIcon 本身已有容器样式) */
+  display: flex; align-items: center; justify-content: center;
+}
+/* 调整 AssetIcon 大小 */
+.card-icon-wrapper .crypto-icon-container {
+  width: 40px; height: 40px;
+}
+
+.card-asset-info {
+  display: flex; flex-direction: column;
+}
+.card-symbol { font-weight: 700; color: #fff; font-size: 16px; }
+.card-type { font-size: 12px; color: var(--light-gray); text-transform: uppercase; }
+
+.card-balance-row {
+  margin-bottom: 20px;
+}
+.card-amount {
+  font-size: 24px; font-weight: 700; color: #fff;
+  font-family: 'Inter', sans-serif;
+}
+.card-value-usd {
+  font-size: 13px; color: var(--light-gray); margin-top: 4px;
+}
+
+.card-actions {
+  margin-top: auto;
+  display: flex;
+  gap: 8px;
+}
+.card-action-btn {
   flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  background-color: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--light-gray);
+  cursor: pointer;
+  transition: all 0.2s;
 }
-.address-display button {
-  margin-left: 12px;
+.card-action-btn:hover {
+  border-color: #fff;
+  color: #fff;
+}
+.card-action-btn.primary {
+  border-color: var(--primary-highlight);
+  color: var(--primary-highlight);
+  background-color: rgba(191, 255, 0, 0.1);
+}
+.card-action-btn.primary:hover {
   background-color: var(--primary-highlight);
   color: #000;
-  border: none;
-  border-radius: 4px;
-  padding: 6px 12px;
-  font-weight: 600;
-  cursor: pointer;
 }
 
-.wallet-select {
-  -webkit-appearance: none;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1.41 0.590088L6 5.17009L10.59 0.590088L12 2.00009L6 8.00009L0 2.00009L1.41 0.590088Z' fill='%23A0A0A0'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 16px center;
+/* Actions Container (WalletActions) */
+.wallet-actions-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+  padding: 0 24px;
+  margin-bottom: 24px;
 }
+.wallet-action-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  height: 48px; border-radius: 8px; border: none;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  transition: background-color 0.2s; padding: 0 8px;
+}
+.wallet-action-btn svg { width: 20px; height: 20px; }
+.wallet-action-btn.send { background-color: rgba(249, 40, 85, 0.15); color: #F92855; }
+.wallet-action-btn.send:hover { background-color: rgba(249, 40, 85, 0.25); }
+.wallet-action-btn.receive { background-color: rgba(45, 192, 142, 0.15); color: #2DC08E; }
+.wallet-action-btn.receive:hover { background-color: rgba(45, 192, 142, 0.25); }
+.wallet-action-btn.mock-deposit { background-color: var(--card-bg); color: var(--primary-highlight); border: 1px dashed var(--border-color); }
+.wallet-action-btn.mock-deposit:hover { background-color: #2a2a2a; }
 
-.balance-info {
-  font-size: 12px;
-  color: var(--light-gray);
-  margin-top: 4px;
-  text-align: right;
-}
+/* --- Receive/Send Modal (不变) --- */
+.receive-modal-content, .send-modal-content { display: flex; flex-direction: column; gap: 20px; }
+.form-group { display: flex; flex-direction: column; gap: 8px; }
+.form-group label { font-size: 14px; color: var(--light-gray); font-weight: 500; }
+.wallet-input, .wallet-select { background-color: var(--dark-bg); border: 1px solid var(--border-color); border-radius: 8px; height: 44px; padding: 0 16px; color: #fff; font-size: 16px; }
+.wallet-input:focus, .wallet-select:focus { outline: none; border-color: var(--primary-highlight); }
+.wallet-submit-btn { height: 48px; border-radius: 8px; background-color: var(--primary-highlight); color: #000; border: none; font-size: 16px; font-weight: 600; cursor: pointer; }
+.wallet-submit-btn:disabled { background-color: #555; color: #888; cursor: not-allowed; }
+.qr-code-wrapper { background-color: white; padding: 16px; border-radius: 8px; }
+.receive-instructions { font-size: 14px; color: var(--light-gray); text-align: center; max-width: 300px; margin: 0; }
+.address-display { display: flex; align-items: center; width: 100%; background-color: var(--dark-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 8px 12px; font-family: monospace; font-size: 14px; }
+.address-display span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.address-display button { margin-left: 12px; background-color: var(--primary-highlight); color: #000; border: none; border-radius: 4px; padding: 6px 12px; font-weight: 600; cursor: pointer; }
+.balance-info { font-size: 12px; color: var(--light-gray); margin-top: 4px; text-align: right; }

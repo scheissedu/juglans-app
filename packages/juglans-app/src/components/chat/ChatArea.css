@@ -1,9 +1,12 @@
+/* packages/juglans-app/src/components/chat/ChatArea.css */
 .chat-area {
   display: flex;
   flex-direction: column;
   height: 100%;
   background-color: var(--dark-bg);
   color: #f8f8f8;
+  overflow: hidden; 
+  position: relative; 
   --chat-border-color: var(--border-color);
   --chat-popover-background: var(--card-bg);
   --chat-primary-color: var(--primary-highlight);
@@ -11,11 +14,82 @@
   --input-background-color: #2d2d30;
 }
 
+.chat-content-area {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--dark-bg);
+  z-index: 1;
+
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+  transform: translateY(100%); 
+  opacity: 0;
+}
+
+/* Expanded State: Becomes part of the flex layout and slides into view */
+.chat-area.is-expanded .chat-content-area {
+  position: relative;
+  flex: 1;
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* --- CORE FIX: Use a more specific selector for the closing animation --- */
+/* This rule now only applies when BOTH classes are present, giving it higher specificity */
+/* and overriding the transform from the .is-expanded rule. */
+.chat-area.is-expanded.is-closing .chat-content-area {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+/* On Desktop: Always in flow, no special positioning */
+@media (min-width: 1001px) {
+  .chat-content-area {
+    position: relative;
+    flex: 1;
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.input-area-wrapper {
+  flex-shrink: 0;
+  padding: 0 6px 6px 6px;
+  background-color: var(--dark-bg);
+  z-index: 2;
+  position: relative;
+}
+/* --- END OF CORE FIX --- */
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--chat-border-color);
+  flex-shrink: 0;
+}
+
+.chat-title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.collapse-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
 .message-list {
   flex: 1 1 auto;
   overflow-y: auto;
   min-height: 0;
-  padding: 16px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -39,7 +113,7 @@
 
 .user-message { align-self: flex-end; }
 .user-message .message-content {
-  background-color: var(--chat-primary-color);
+  background-color: var(--primary-highlight);
   color: #000;
   border-bottom-right-radius: 4px;
 }
@@ -63,13 +137,7 @@
 .pre-input-wrapper {
   background-color: var(--dark-bg);
   padding: 0 12px;
-}
-
-.input-area-wrapper {
-  flex-shrink: 0;
-  padding: 0 6px 6px 6px;
-  background-color: var(--dark-bg);
-  margin-top: auto;
+  flex-shrink: 0; 
 }
 
 .input-area {
@@ -211,8 +279,6 @@
   border-radius: 4px;
   object-fit: cover;
 }
-
-/* --- 核心修正：下面的样式块已被删除 --- */
 
 .actions-right { display: flex; flex-shrink: 0; }
 
